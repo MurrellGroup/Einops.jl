@@ -61,7 +61,8 @@ using Test, Statistics
 
         x = rand(2,3)
         @test rearrange(x, (:a, :b) --> (:b, 1, :a)) == reshape(permutedims(x, (2,1)), 3,1,2)
-        @test rearrange(x, (:a, :b) --> (:b, 1, :a)) == rearrange(x, (:a, :b) --> (:b, (), :a))
+        @test rearrange(x, (:a, :b) --> (:b, 1, 1, :a, 1)) == reshape(permutedims(x, (2,1)), 3,1,1,2,1)
+        @test rearrange(x, (:a, :b) --> (:b, (), :a)) == rearrange(x, (:a, :b) --> (:b, (), :a))
 
         @testset "Python API reference parity" begin
             # see https://einops.rocks/api/rearrange/

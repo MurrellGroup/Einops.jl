@@ -5,7 +5,7 @@
 [![Build Status](https://github.com/MurrellGroup/Einops.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/MurrellGroup/Einops.jl/actions/workflows/CI.yml?query=branch%3Amain)
 [![Coverage](https://codecov.io/gh/MurrellGroup/Einops.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/MurrellGroup/Einops.jl)
 
-Einops.jl is a Julia implementation of the [einops](https://einops.rocks) Python library, providing an elegant and intuitive notation for tensor operations. Einops offers a unified way to perform Julia's `reshape` and `permutedims`, with plans for also implementing `reduce` and `repeat`.
+Einops.jl is a Julia implementation of the [einops](https://einops.rocks) Python package, providing an elegant and intuitive notation for tensor operations. Einops offers a unified way to perform Julia's `reshape` and `permutedims`, with plans for also implementing `reduce` and `repeat`.
 
 The Python implementation uses strings to specify the operation, but in Julia, that would be tricky to compile, so for parity a string macro `@einops_str` is exported, e.g. `einops"a 1 b c -> (c b) a"`, which expands to the form `(:a, 1, :b, :c,) --> ((:c, :b), :a)` where `-->` is an operator that creates an `Einops.Pattern{(:a, 1, :b, :c), ((:c, :b), :a)}`, allowing for compile-time awareness of dimensionalities and permutations—this is not yet taken advantage of, since the tuple types are sufficient for at least ensuring type stability (see [Roadmap](#Roadmap)).
 
