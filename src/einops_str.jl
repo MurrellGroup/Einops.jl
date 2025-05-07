@@ -73,6 +73,21 @@ function tokenise_side(side::AbstractString)
     return Tuple(tokens)
 end
 
+"""
+    einops"... -> ..."
+
+For parity with Python implementation.
+
+# Examples
+
+```jldoctest
+julia> einops"a 1 b c -> (c b) a"
+(:a, 1, :b, :c) --> ((:c, :b), :a)
+
+julia> einops"embed token (head batch) -> (embed head) token batch"
+(:embed, :token, (:head, :batch)) --> ((:embed, :head), :token, :batch)
+```
+"""
 macro einops_str(pattern)
     return parse_pattern(pattern)
 end

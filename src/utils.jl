@@ -16,3 +16,7 @@ function extract(T::Type, input_tuple::Tuple)
     end
     return (instances_from_first..., extract(T, rest_elements)...)
 end
+
+# fix for 1.10:
+_permutedims(x::AbstractArray{T,0}, ::Tuple{}) where T = x
+_permutedims(x, perm) = permutedims(x, perm)

@@ -15,7 +15,7 @@ using Test, Statistics
         @test_throws "')'" Einops.parse_pattern("-> )")
         @test_throws "->" Einops.parse_pattern("")
     end
-    
+
     @testset "rearrange" begin
 
         x = rand(2,3,5)
@@ -86,9 +86,9 @@ using Test, Statistics
 
             # utility function
             reducedrop(args...; dims) = dropdims(reduce(args...; dims); dims)
-            
+
             x = randn(100, 32, 64)
-            
+
             # perform max-reduction on the first axis
             # Axis t does not appear on RHS - thus we reduced over t
             @test_broken reduce(maximum, x, einops"t b c -> b c") == reducedrop(max, x, dims=1)
@@ -102,7 +102,7 @@ using Test, Statistics
 
             # 2d max-pooling with kernel size = 2 * 2 for image processing
             @test_broken reduce(maximum, x, einops"b c (h1 h2) (w1 w2) -> b c h1 w1", h2=2, w2=2) == reducedrop(max, reshape(x, 10, 20, 15, 2, 20, 2), dims=(4,6))
-            
+
             # same as previous, using anonymous axes,
             # note: only reduced axes can be anonymous
             @test_broken reduce(maximum, x, einops"b c (h1 2) (w1 2) -> b c h1 w1") == reducedrop(max, reshape(x, 10, 20, 15, 2, 20, 2), dims=(4,6))
