@@ -32,7 +32,7 @@ function permute(x, left, right)
     return _permutedims(x, perm)
 end
 
-# TODO: statically remove if no parentheses or singleton dimensions
+# TODO: statically remove if no singleton dimensions
 len(dim::Tuple{Vararg{Symbol}}) = length(dim)
 len(::Symbol) = 1
 len(x::Int) = x == 1 ? 0 : throw(ArgumentError("Singleton dimension size is not 1: $x"))
