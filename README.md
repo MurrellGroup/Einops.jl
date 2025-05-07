@@ -16,17 +16,19 @@ The Python implementation uses strings to specify the operation, but that would 
 The `rearrange` combines reshaping and permutation operations into a single, expressive command:
 
 ```julia
-# Example from Python API
-images = randn(32, 30, 40, 3); # batch, height, width, channel
+julia> images = randn(32, 30, 40, 3); # batch, height, width, channel
 
 # reorder axes to "b c h w" format:
-rearrange(images, (:b, :h, :w, :c) --> (:b, :c, :h, :w)) # (32, 3, 30, 40)
+julia> rearrange(images, (:b, :h, :w, :c) --> (:b, :c, :h, :w)) |> size
+(32, 3, 30, 40)
 
 # flatten each image into a vector
-rearrange(images, (:b, :h, :w, :c) --> (:b, (:h, :w, :c))) # (32, 30*40*3)
+julia> rearrange(images, (:b, :h, :w, :c) --> (:b, (:h, :w, :c))) |> size
+(32, 3600)
 
 # split each image into 4 smaller (top-left, top-right, bottom-left, bottom-right), 128 = 32 * 2 * 2
-rearrange(images, (:b, (:h1, :h), (:w1, :w), :c) --> ((:b, :h1, :w1), :h, :w, :c), h1=2, w1=2) # (128, 15, 20, 3)
+julia> rearrange(images, (:b, (:h1, :h), (:w1, :w), :c) --> ((:b, :h1, :w1), :h, :w, :c), h1=2, w1=2) |> size
+(128, 15, 20, 3)
 ```
 
 ### `reduce` (Planned)
