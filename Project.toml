@@ -1,13 +1,19 @@
 name = "Einops"
 uuid = "e3ce28c8-8bfb-4704-8add-e3e7f14b55c9"
 authors = ["Anton Oresten <antonoresten@gmail.com> and contributors"]
-version = "1.0.0-DEV"
+version = "0.0.1"
+
+[deps]
+EllipsisNotation = "da5c29d0-fa7d-589e-88eb-ea29b0a81949"
 
 [compat]
+EllipsisNotation = "1"
+Statistics = "1"
 julia = "1.10"
 
 [extras]
+Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Test"]
+test = ["Test", "Statistics"]
