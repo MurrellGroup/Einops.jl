@@ -46,22 +46,22 @@ end
 reshape_out(x, ::Tuple{Vararg{Symbol}}) = x
 
 """
-    rearrange(x::AbstractArray, left => right)
+    rearrange(x::AbstractArray, left --> right)
 
-Rearrange the axes of `x` according to the pattern specified by `left => right`.
+Rearrange the axes of `x` according to the pattern specified by `left --> right`.
 
 Can always be expressed as a `reshape` + `permutedims` + `reshape`.
 
 # Examples
 
 ```jldoctest
-julia> rearrange(rand(2,3,5), (:a, :b, :c) => (:c, :b, :a)) |> size
+julia> rearrange(rand(2,3,5), (:a, :b, :c) --> (:c, :b, :a)) |> size
 (5, 3, 2)
 
 julia> permutedims(rand(2,3,5), (3,2,1)) |> size
 (5, 3, 2)
 
-julia> rearrange(rand(2,3,35), (:a, :b, (:c, :d)) => (:a, :d, (:c, :b)), c=5) |> size
+julia> rearrange(rand(2,3,35), (:a, :b, (:c, :d)) --> (:a, :d, (:c, :b)), c=5) |> size
 (2, 7, 15)
 
 julia> reshape(permutedims(reshape(rand(2,3,35), 2,3,5,7), (1,4,3,2)), 2,7,5*3) |> size

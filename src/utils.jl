@@ -1,3 +1,10 @@
+struct Pattern{L,R} end
+(-->)(L, R) = Pattern{L, R}()
+Base.show(io::IO, ::Pattern{L,R}) where {L,R} = print(io, "$L --> $R")
+Base.iterate(::Pattern{L}) where L = (L, Val(:R))
+Base.iterate(::Pattern{<:Any,R}, ::Val{:R}) where R = (R, nothing)
+Base.iterate(::Pattern, ::Nothing) = nothing
+
 function permutation_mapping(left::NTuple{N,T}, right::NTuple{N,T}) where {N,T}
     perm::Vector{Int} = findfirst.(isequal.([right...]), Ref([left...]))
     return ntuple(i -> perm[i], Val(N))

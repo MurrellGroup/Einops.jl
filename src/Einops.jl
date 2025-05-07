@@ -7,6 +7,7 @@ export ..
 # TODO: use TransmuteDims.jl
 
 include("utils.jl")
+export -->
 
 include("einops_str.jl")
 export @einops_str
@@ -19,7 +20,7 @@ export pack, unpack
 
 # TODO: implement reduce, repeat
 Base.reduce(f, x::AbstractArray, pattern::Pattern; context...) = error("Not implemented")
-Base.repeat(x, pattern::Pattern; context...) = error("Not implemented")
+Base.repeat(x::AbstractArray, pattern::Pattern; context...) = error("Not implemented")
 
 # TODO: einsum
 
