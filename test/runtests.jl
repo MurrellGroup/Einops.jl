@@ -16,18 +16,28 @@ using Test, Statistics
     end
 
     @testset "einops string tokenization" begin
-        @test einops"a b c -> a (c b)" == ((:a, :b, :c) --> (:a, (:c, :b)))
-        @test einops"a b c -> a(c b)" == ((:a, :b, :c) --> (:a, (:c, :b)))
-        @test einops"a b 1 -> a 1 b" == ((:a, :b, 1) --> (:a, 1, :b))
-        @test einops"a b () -> a () b" == ((:a, :b, ()) --> (:a, (), :b))
-        @test einops"a b()->a()b" == ((:a, :b, ()) --> (:a, (), :b))
-        @test einops"b ... -> b ..." == ((:b, ..) --> (:b, ..))
-        @test einops"->" == (() --> ())
-        @test einops"-> 1" == (() --> (1,))
-        @test_throws "'.'" Einops.parse_pattern("-> .")
-        @test_throws "'('" Einops.parse_pattern("-> (")
-        @test_throws "')'" Einops.parse_pattern("-> )")
-        @test_throws "->" Einops.parse_pattern("")
+
+        @testset "arrow pattern" begin
+            @test einops"a b c -> a (c b)" == ((:a, :b, :c) --> (:a, (:c, :b)))
+            @test einops"a b c -> a(c b)" == ((:a, :b, :c) --> (:a, (:c, :b)))
+            @test einops"a b 1 -> a 1 b" == ((:a, :b, 1) --> (:a, 1, :b))
+            @test einops"a b () -> a () b" == ((:a, :b, ()) --> (:a, (), :b))
+            @test einops"a b()->a()b" == ((:a, :b, ()) --> (:a, (), :b))
+            @test einops"b ... -> b ..." == ((:b, ..) --> (:b, ..))
+            @test einops"->" == (() --> ())
+            @test einops"-> 1" == (() --> (1,))
+            @test_throws "'.'" Einops.parse_pattern("-> .")
+            @test_throws "'('" Einops.parse_pattern("-> (")
+            @test_throws "')'" Einops.parse_pattern("-> )")
+        end
+
+        @testset "packing pattern" begin
+            @test einops"i j * k" == (:i, :j, *, :k)
+            @test einops" i  j  *  k " == (:i, :j, *, :k)
+            @test einops"* i" == (*, :i)
+            @test einops"i *" == (:i, *)
+        end
+
     end
 
     @testset "rearrange" begin
@@ -166,6 +176,27 @@ using Test, Statistics
             @test_broken begin
                 downsampled = reduce(mean, image, einops"(h h2) (w w2) -> h w", h2=2, w2=2)
                 repeat(downsampled, einops"h w -> (h h2) (w w2)", h2=2, w2=2) |> size == (60, 80)
+            end
+
+        end
+
+    end
+
+    @testset "pack_unpack" begin
+
+        @testset "Python API reference parity" begin
+            # see https://einops.rocks/api/pack_unpack/
+
+            inputs = [rand(2, 3, 5), rand(2, 3, 7, 5), rand(2, 3, 7, 9, 5)]
+            @test begin
+                packed, ps = pack(inputs, einops"i j * k")
+                packed |> size == (2, 3, 71, 5) && ps == [(), (7,), (7, 9)]
+            end
+
+            @test begin
+                packed, ps = pack(inputs, einops"i j * k")
+                inputs_unpacked = unpack(packed, ps, einops"i j * k")
+                all(inputs .== inputs_unpacked)
             end
 
         end

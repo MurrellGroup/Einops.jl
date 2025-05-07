@@ -1,14 +1,13 @@
 function parse_pattern(pattern::AbstractString)
-    occursin("->", pattern) ||
-        throw(ArgumentError("pattern must contain \"->\" (got \"$pattern\")"))
+    occursin("->", pattern) || return tokenize_packing_pattern(pattern)
 
     lhs, rhs = strip.(split(pattern, "->"; limit = 2))
-    lhs_axes = tokenise_side(lhs)
-    rhs_axes = tokenise_side(rhs)
+    lhs_axes = tokenize_side(lhs)
+    rhs_axes = tokenize_side(rhs)
     return Tuple(lhs_axes) --> Tuple(rhs_axes)
 end
 
-function tokenise_side(side::AbstractString)
+function tokenize_side(side::AbstractString)
     tokens = Any[]
     stack  = Vector{Any}[]
     buf    = IOBuffer()
@@ -73,8 +72,13 @@ function tokenise_side(side::AbstractString)
     return Tuple(tokens)
 end
 
+function tokenize_packing_pattern(pattern::AbstractString)
+    Tuple(map(s -> s == "*" ? (*) : Symbol(s), filter(!isempty, split(pattern, ' '))))
+end
+
 """
-    einops"... -> ..."
+    einops"a (b c) -> (c b a)"
+    einops"i j * k"
 
 For parity with Python implementation.
 
@@ -86,6 +90,9 @@ julia> einops"a 1 b c -> (c b) a"
 
 julia> einops"embed token (head batch) -> (embed head) token batch"
 (:embed, :token, (:head, :batch)) --> ((:embed, :head), :token, :batch)
+
+julia> einops"i j * k" # for packing
+(:i, :j, *, :k)
 ```
 """
 macro einops_str(pattern)

@@ -22,10 +22,13 @@ export @einops_str
 include("rearrange.jl")
 export rearrange
 
+include("pack_unpack.jl")
+export pack, unpack
+
 # TODO: implement reduce, repeat
 Base.reduce(f, x::AbstractArray, pattern::Pattern; context...) = error("Not implemented")
 Base.repeat(x, pattern::Pattern; context...) = error("Not implemented")
 
-# TODO: einsum, pack, unpack
+# TODO: einsum
 
 end
