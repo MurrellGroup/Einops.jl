@@ -17,8 +17,10 @@ using Test, Statistics
 
     @testset "einops string tokenization" begin
         @test einops"a b c -> a (c b)" == ((:a, :b, :c) --> (:a, (:c, :b)))
+        @test einops"a b c -> a(c b)" == ((:a, :b, :c) --> (:a, (:c, :b)))
         @test einops"a b 1 -> a 1 b" == ((:a, :b, 1) --> (:a, 1, :b))
         @test einops"a b () -> a () b" == ((:a, :b, ()) --> (:a, (), :b))
+        @test einops"a b()->a()b" == ((:a, :b, ()) --> (:a, (), :b))
         @test einops"b ... -> b ..." == ((:b, ..) --> (:b, ..))
         @test einops"->" == (() --> ())
         @test einops"-> 1" == (() --> (1,))
