@@ -1,7 +1,7 @@
 name = "Einops"
 uuid = "e3ce28c8-8bfb-4704-8add-e3e7f14b55c9"
 authors = ["Anton Oresten <antonoresten@gmail.com> and contributors"]
-version = "0.0.1"
+version = "0.1.0"
 
 [deps]
 EllipsisNotation = "da5c29d0-fa7d-589e-88eb-ea29b0a81949"
