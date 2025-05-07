@@ -3,6 +3,18 @@ using Test, Statistics
 
 @testset "Einops.jl" begin
 
+    @testset "Pattern" begin
+        @test (() --> ()) isa Einops.Pattern
+        @test begin
+            left, right = (:a, :b, :c) --> (:c, :b, :a)
+            left isa Tuple && right isa Tuple
+        end
+        @test_throws "attempt to access" begin
+            left, right, _ = (:a, :b, :c) --> (:c, :b, :a)
+        end
+        @test repr((:a, :b, :c) --> (:c, :b, :a)) == "(:a, :b, :c) --> (:c, :b, :a)"
+    end
+
     @testset "einops string tokenization" begin
         @test einops"a b c -> a (c b)" == ((:a, :b, :c) --> (:a, (:c, :b)))
         @test einops"a b 1 -> a 1 b" == ((:a, :b, 1) --> (:a, 1, :b))
