@@ -4,7 +4,7 @@ function parse_pattern(pattern::AbstractString)
     lhs, rhs = strip.(split(pattern, "->"; limit = 2))
     lhs_axes = tokenize_side(lhs)
     rhs_axes = tokenize_side(rhs)
-    return Tuple(lhs_axes) --> Tuple(rhs_axes)
+    return Tuple(lhs_axes) => Tuple(rhs_axes)
 end
 
 function tokenize_side(side::AbstractString)
@@ -86,10 +86,10 @@ For parity with Python implementation.
 
 ```jldoctest
 julia> einops"a 1 b c -> (c b) a"
-(:a, 1, :b, :c) --> ((:c, :b), :a)
+(:a, 1, :b, :c) => ((:c, :b), :a)
 
 julia> einops"embed token (head batch) -> (embed head) token batch"
-(:embed, :token, (:head, :batch)) --> ((:embed, :head), :token, :batch)
+(:embed, :token, (:head, :batch)) => ((:embed, :head), :token, :batch)
 
 julia> einops"i j * k" # for packing
 (:i, :j, *, :k)

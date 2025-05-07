@@ -18,14 +18,14 @@ using Test, Statistics
     @testset "einops string tokenization" begin
 
         @testset "arrow pattern" begin
-            @test einops"a b c -> a (c b)" == ((:a, :b, :c) --> (:a, (:c, :b)))
-            @test einops"a b c -> a(c b)" == ((:a, :b, :c) --> (:a, (:c, :b)))
-            @test einops"a b 1 -> a 1 b" == ((:a, :b, 1) --> (:a, 1, :b))
-            @test einops"a b () -> a () b" == ((:a, :b, ()) --> (:a, (), :b))
-            @test einops"a b()->a()b" == ((:a, :b, ()) --> (:a, (), :b))
-            @test einops"b ... -> b ..." == ((:b, ..) --> (:b, ..))
-            @test einops"->" == (() --> ())
-            @test einops"-> 1" == (() --> (1,))
+            @test einops"a b c -> a (c b)" == ((:a, :b, :c) => (:a, (:c, :b)))
+            @test einops"a b c -> a(c b)" == ((:a, :b, :c) => (:a, (:c, :b)))
+            @test einops"a b 1 -> a 1 b" == ((:a, :b, 1) => (:a, 1, :b))
+            @test einops"a b () -> a () b" == ((:a, :b, ()) => (:a, (), :b))
+            @test einops"a b()->a()b" == ((:a, :b, ()) => (:a, (), :b))
+            @test einops"b ... -> b ..." == ((:b, ..) => (:b, ..))
+            @test einops"->" == (() => ())
+            @test einops"-> 1" == (() => (1,))
             @test_throws "'.'" Einops.parse_pattern("-> .")
             @test_throws "'('" Einops.parse_pattern("-> (")
             @test_throws "')'" Einops.parse_pattern("-> )")
@@ -43,36 +43,36 @@ using Test, Statistics
     @testset "rearrange" begin
 
         x = rand(2,3,5)
-        @test rearrange(x, (:a, :b, :c) --> (:c, :b, :a)) == permutedims(x, (3,2,1))
-        @test rearrange(x, (:a, :b, :c) --> (:a, (:c, :b))) == reshape(permutedims(x, (1,3,2)), 2,5*3)
-        @test rearrange(x, (:first, :second, :third) --> (:third, :second, :first)) == rearrange(x, (:a, :b, :c) --> (:c, :b, :a))
-        @test_throws "Input length" rearrange(x, (:a, (:b, :c)) --> (:c, :b, :a))
-        @test_throws ["Set of", "does not match"] rearrange(x, (:a, :b, :c) --> (:a, :b, :a))
-        @test_throws ["Left names", "not unique"] rearrange(x, (:a, :a, :b) --> (:a, :b))
-        @test_throws ["Right names", "not unique"] rearrange(x, (:a, :b, :c) --> (:a, :b, :c, :a))
-        @test_throws "Invalid input dimension" rearrange(x, (:a, :b, 'c') --> (:a, :b, :c))
-        @test_broken rearrange(x, (:a, :b, ..) --> (:a, .., :b)) == rearrange(x, (:a, :b, :c) --> (:a, :c, :b))
+        @test rearrange(x, (:a, :b, :c) => (:c, :b, :a)) == permutedims(x, (3,2,1))
+        @test rearrange(x, (:a, :b, :c) => (:a, (:c, :b))) == reshape(permutedims(x, (1,3,2)), 2,5*3)
+        @test rearrange(x, (:first, :second, :third) => (:third, :second, :first)) == rearrange(x, (:a, :b, :c) => (:c, :b, :a))
+        @test_throws "Input length" rearrange(x, (:a, (:b, :c)) => (:c, :b, :a))
+        @test_throws ["Set of", "does not match"] rearrange(x, (:a, :b, :c) => (:a, :b, :a))
+        @test_throws ["Left names", "not unique"] rearrange(x, (:a, :a, :b) => (:a, :b))
+        @test_throws ["Right names", "not unique"] rearrange(x, (:a, :b, :c) => (:a, :b, :c, :a))
+        @test_throws "Invalid input dimension" rearrange(x, (:a, :b, 'c') => (:a, :b, :c))
+        @test_broken rearrange(x, (:a, :b, ..) => (:a, .., :b)) == rearrange(x, (:a, :b, :c) => (:a, :c, :b))
 
         x = reshape(rand(1)) # size (), length 1
-        @test rearrange(x, () --> ()) == x
-        @test rearrange(x, () --> (1,)) == reshape(x, 1)
+        @test rearrange(x, () => ()) == x
+        @test rearrange(x, () => (1,)) == reshape(x, 1)
 
         x = rand(2,3,5*7)
-        @test rearrange(x, (:a, :b, (:c, :d)) --> (:a, :d, (:c, :b)), c=5) == reshape(permutedims(reshape(x, 2,3,5,7), (1,4,3,2)), 2,7,5*3)
+        @test rearrange(x, (:a, :b, (:c, :d)) => (:a, :d, (:c, :b)), c=5) == reshape(permutedims(reshape(x, 2,3,5,7), (1,4,3,2)), 2,7,5*3)
 
         x = rand(2,3,5*7*11)
-        @test rearrange(x, (:a, :b, (:c, :d, :e)) --> ((:a, :e), :d, (:c, :b)), c=5, d=7) == reshape(permutedims(reshape(x, 2,3,5,7,11), (1,5,4,3,2)), 2*11,7,5*3)
-        @test_throws "Unknown dimension sizes" rearrange(x, (:a, :b, (:c, :d, :e)) --> (:a, :b, :c, :d, :e), c=5)
+        @test rearrange(x, (:a, :b, (:c, :d, :e)) => ((:a, :e), :d, (:c, :b)), c=5, d=7) == reshape(permutedims(reshape(x, 2,3,5,7,11), (1,5,4,3,2)), 2*11,7,5*3)
+        @test_throws "Unknown dimension sizes" rearrange(x, (:a, :b, (:c, :d, :e)) => (:a, :b, :c, :d, :e), c=5)
 
         x = rand(2,1,3)
-        @test rearrange(x, (:a, 1, :b) --> (:a, :b)) == dropdims(x, dims=2)
-        @test_throws "Singleton dimension size is not 1" rearrange(x, (2, :a, :b) --> (:a, :b))
-        @test_throws "Singleton dimension size is not 1" rearrange(x, (:a, :b, :c) --> (:a, :b, :c, 2))
+        @test rearrange(x, (:a, 1, :b) => (:a, :b)) == dropdims(x, dims=2)
+        @test_throws "Singleton dimension size is not 1" rearrange(x, (2, :a, :b) => (:a, :b))
+        @test_throws "Singleton dimension size is not 1" rearrange(x, (:a, :b, :c) => (:a, :b, :c, 2))
 
         x = rand(2,3)
-        @test rearrange(x, (:a, :b) --> (:b, 1, :a)) == reshape(permutedims(x, (2,1)), 3,1,2)
-        @test rearrange(x, (:a, :b) --> (:b, 1, 1, :a, 1)) == reshape(permutedims(x, (2,1)), 3,1,1,2,1)
-        @test rearrange(x, (:a, :b) --> (:b, (), :a)) == rearrange(x, (:a, :b) --> (:b, (), :a))
+        @test rearrange(x, (:a, :b) => (:b, 1, :a)) == reshape(permutedims(x, (2,1)), 3,1,2)
+        @test rearrange(x, (:a, :b) => (:b, 1, 1, :a, 1)) == reshape(permutedims(x, (2,1)), 3,1,1,2,1)
+        @test rearrange(x, (:a, :b) => (:b, (), :a)) == rearrange(x, (:a, :b) => (:b, (), :a))
 
         @testset "Python API reference parity" begin
             # see https://einops.rocks/api/rearrange/

@@ -55,21 +55,20 @@ Can always be expressed as a `reshape` + `permutedims` + `reshape`.
 # Examples
 
 ```jldoctest
-julia> rearrange(rand(2,3,5), (:a, :b, :c) --> (:c, :b, :a)) |> size
+julia> rearrange(rand(2,3,5), (:a, :b, :c) => (:c, :b, :a)) |> size
 (5, 3, 2)
 
 julia> permutedims(rand(2,3,5), (3,2,1)) |> size
 (5, 3, 2)
 
-julia> rearrange(rand(2,3,35), (:a, :b, (:c, :d)) --> (:a, :d, (:c, :b)), c=5) |> size
+julia> rearrange(rand(2,3,35), (:a, :b, (:c, :d)) => (:a, :d, (:c, :b)), c=5) |> size
 (2, 7, 15)
 
 julia> reshape(permutedims(reshape(rand(2,3,35), 2,3,5,7), (1,4,3,2)), 2,7,5*3) |> size
 (2, 7, 15)
 ```
 """
-function rearrange(x, @nospecialize pattern::Pattern; context...)
-    left, right = pattern
+function rearrange(x, (left, right); context...)
     (!isempty(extract(typeof(..), left)) || !isempty(extract(typeof(..), right))) && throw(ArgumentError("Ellipses (..) are currently not supported"))
     left_names, right_names = extract(Symbol, left), extract(Symbol, right)
     reshaped_in = reshape_in(x, left; context...)

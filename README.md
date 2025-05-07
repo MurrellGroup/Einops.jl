@@ -8,9 +8,9 @@
 > [!WARNING]  
 > This package is still under development, and does not implement all of the features of the original (see [Roadmap](#Roadmap)).
 
-Einops.jl is a Julia implementation of the [einops](https://einops.rocks) Python package, providing an elegant and intuitive notation for tensor operations. We currently implement `rearrange`, offering a unified way to perform Julia's `reshape` and `permutedims`, with plans for also implementing `reduce` and `repeat`.
+Einops.jl is a Julia implementation of the [einops](https://einops.rocks) Python package, providing an elegant and intuitive notation for tensor operations. We currently implement `rearrange`, offering a unified way to perform Julia's `reshape` and `permutedims`, as well as `pack` and `unpack`, with plans for implementing `reduce` and `repeat`.
 
-The Python implementation uses strings to specify the operation, but that would be tricky to compile in Julia, so a string macro `@einops_str` is exported for parity, e.g. `einops"a 1 b c -> (c b) a"`, which expands to the form `(:a, 1, :b, :c,) --> ((:c, :b), :a)` where `-->` is an operator that creates an `Einops.Pattern{(:a, 1, :b, :c), ((:c, :b), :a)}`, allowing for compile-time awareness of dimensionalities and permutations—this is not yet taken advantage of, since the tuple types are sufficient for at least ensuring type stability (see [Roadmap](#Roadmap)).
+The Python implementation uses strings to specify the operation, but that would be tricky to compile in Julia, so a string macro `@einops_str` is exported for parity, e.g. `einops"a 1 b c -> (c b) a"`, which expands to the form `(:a, 1, :b, :c,) => ((:c, :b), :a)`, allowing for compile-time awareness of dimensionalities, ensuring type stability.
 
 ## Operations
 
@@ -22,15 +22,15 @@ The `rearrange` combines reshaping and permutation operations into a single, exp
 julia> images = randn(32, 30, 40, 3); # batch, height, width, channel
 
 # reorder axes to "b c h w" format:
-julia> rearrange(images, (:b, :h, :w, :c) --> (:b, :c, :h, :w)) |> size
+julia> rearrange(images, (:b, :h, :w, :c) => (:b, :c, :h, :w)) |> size
 (32, 3, 30, 40)
 
 # flatten each image into a vector
-julia> rearrange(images, (:b, :h, :w, :c) --> (:b, (:h, :w, :c))) |> size
+julia> rearrange(images, (:b, :h, :w, :c) => (:b, (:h, :w, :c))) |> size
 (32, 3600)
 
 # split each image into 4 smaller (top-left, top-right, bottom-left, bottom-right), 128 = 32 * 2 * 2
-julia> rearrange(images, (:b, (:h1, :h), (:w1, :w), :c) --> ((:b, :h1, :w1), :h, :w, :c), h1=2, w1=2) |> size
+julia> rearrange(images, (:b, (:h1, :h), (:w1, :w), :c) => ((:b, :h1, :w1), :h, :w, :c), h1=2, w1=2) |> size
 (128, 15, 20, 3)
 ```
 
@@ -41,7 +41,7 @@ The `reduce` function will allow for applying reduction operations (like `sum`, 
 ```julia
 # Example (conceptual):
 x = randn(100, 32, 64)
-y = reduce(maximum, x, (:t, :b, :c) --> (:b, :c)) # max-reduction on the first axis
+y = reduce(maximum, x, (:t, :b, :c) => (:b, :c)) # max-reduction on the first axis
 ```
 
 ### `repeat` (Planned)
@@ -51,7 +51,7 @@ The `repeat` function will provide a concise way to repeat elements along existi
 ```julia
 # Example (conceptual):
 image = randn(30, 40)
-rgb_image = repeat(image, (:h, :w) --> (:repeat, :h, :w), repeat=3)
+rgb_image = repeat(image, (:h, :w) => (:repeat, :h, :w), repeat=3)
 ```
 
 ## Roadmap
@@ -63,7 +63,7 @@ rgb_image = repeat(image, (:h, :w) --> (:repeat, :h, :w), repeat=3)
 *   [ ] Implement `repeat`.
 *   [ ] Explore integration with `PermutedDimsArray` or `TransmuteDims.jl` for lazy and statically inferrable permutations.
 *   [ ] Implement `einsum` (or wrap existing implementation) 
-*   [ ] Implement `pack`, and `unpack`.
+*   [x] Implement `pack`, and `unpack`.
 
 ## Contributing
 
