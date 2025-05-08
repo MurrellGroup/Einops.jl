@@ -8,7 +8,7 @@
 > [!WARNING]  
 > This package is still under development, and does not implement all of the features of the original (see [Roadmap](#Roadmap)).
 
-Einops.jl is a Julia implementation of the [einops](https://einops.rocks) Python package, providing an elegant and intuitive notation for tensor operations. We currently implement `rearrange`, offering a unified way to perform Julia's `reshape` and `permutedims`, as well as `pack` and `unpack`, with plans for implementing `reduce` and `repeat`.
+Einops.jl is a Julia implementation of the [einops](https://einops.rocks) Python package, providing an elegant and intuitive notation for tensor operations, and unifying Julia's `reshape`, `permutedims`, `repeat` operations (and soon `reduce`).
 
 The Python implementation uses strings to specify the operation, but that would be tricky to compile in Julia, so a string macro `@einops_str` is exported for parity, e.g. `einops"a 1 b c -> (c b) a"`, which expands to the form `(:a, 1, :b, :c,) --> ((:c, :b), :a)`, allowing for compile-time awareness of dimensionalities, ensuring type stability.
 
