@@ -22,7 +22,7 @@ Pack a vector of arrays into a single array according to the pattern.
 # Examples
 
 ```jldoctest
-julia> inputs = [rand(2,3,5), rand(2,3,7,5), rand(2,3,7,9,5)]
+julia> inputs = [rand(2,3,5), rand(2,3,7,5), rand(2,3,7,9,5)];
 
 julia> packed_array, packed_shapes = pack(inputs, (:i, :j, *, :k));
 
