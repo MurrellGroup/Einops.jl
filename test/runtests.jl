@@ -15,7 +15,20 @@ using Test, Statistics
         @test repr((:a, :b, :c) --> (:c, :b, :a)) == "(:a, :b, :c) --> (:c, :b, :a)"
     end
 
+    @testset "parse_shape" begin
+        @test begin
+            x = rand(2,3,5)
+            shape = parse_shape(x, (:a, :b, :c))
+            (shape[:a], shape[:b], shape[:c]) == size(x)
+        end
+    end
+
     @testset "einops string tokenization" begin
+
+        @testset "parse_shape pattern" begin
+            @test einops"a _ c" == (:a, -, :c)
+            @test einops"_ _ _" == (-, -, -)
+        end
 
         @testset "arrow pattern" begin
             @test einops"a b c -> a (c b)" == ((:a, :b, :c) --> (:a, (:c, :b)))
@@ -24,6 +37,7 @@ using Test, Statistics
             @test einops"a b () -> a () b" == ((:a, :b, ()) --> (:a, (), :b))
             @test einops"a b()->a()b" == ((:a, :b, ()) --> (:a, (), :b))
             @test einops"b ... -> b ..." == ((:b, ..) --> (:b, ..))
+            @test einops"b b -> a a" == ((:b, :b) --> (:a, :a))
             @test einops"->" == (() --> ())
             @test einops"-> 1" == (() --> (1,))
             @test_throws "'.'" Einops.parse_pattern("-> .")
@@ -31,11 +45,12 @@ using Test, Statistics
             @test_throws "')'" Einops.parse_pattern("-> )")
         end
 
-        @testset "packing pattern" begin
+        @testset "pack and unpack pattern" begin
             @test einops"i j * k" == (:i, :j, *, :k)
             @test einops" i  j  *  k " == (:i, :j, *, :k)
             @test einops"* i" == (*, :i)
             @test einops"i *" == (:i, *)
+            @test einops"i i" == (:i, :i)
         end
 
     end

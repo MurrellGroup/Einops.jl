@@ -58,12 +58,13 @@ rgb_image = repeat(image, (:h, :w) --> (:repeat, :h, :w), repeat=3)
 
 *   [x] Implement `rearrange`.
 *   [x] Support Python implementation's string syntax for patterns with string macro.
+*   [x] Implement `parse_shape`.
+*   [x] Implement `pack` and `unpack`.
 *   [ ] Support ellipsis notation (using `..` from [EllipsisNotation.jl](https://github.com/SciML/EllipsisNotation.jl)).
 *   [ ] Implement `reduce`.
 *   [ ] Implement `repeat`.
 *   [ ] Explore integration with `PermutedDimsArray` or `TransmuteDims.jl` for lazy and statically inferrable permutations.
-*   [ ] Implement `einsum` (or wrap existing implementation) 
-*   [x] Implement `pack`, and `unpack`.
+*   [ ] Implement `einsum` (or wrap existing implementation).
 
 ## Contributing
 

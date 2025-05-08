@@ -1,7 +1,12 @@
 const Wildcard = typeof(*)
 const PackPattern{N} = NTuple{N,Union{Symbol,Wildcard}}
 
-checkpacking(pattern::PackPattern) = count(x -> x isa Wildcard, pattern) == 1 || error("Only one wildcard (*) is allowed in the pattern")
+function check_packing_pattern(pattern::PackPattern)
+    count(x -> x isa Wildcard, pattern) == 1 || error("Only one wildcard (*) is allowed in the pattern")
+    allunique(pattern) || error("Pattern $(pattern) has duplicate elements")
+    return nothing
+end
+
 find_wildcard(pattern::PackPattern) = findfirst(x -> x isa Wildcard, pattern)
 
 size_before_wildcard(dims::Dims, pattern::PackPattern) = dims[1:find_wildcard(pattern)-1]
@@ -31,7 +36,7 @@ julia> packed_shapes
  (7, 9)
 """
 function pack(unpacked_arrays, pattern::PackPattern{N}) where N
-    checkpacking(pattern)
+    check_packing_pattern(pattern)
     reshaped_arrays = [reshape(A, packed_size(size(A), pattern)::Dims{N})::AbstractArray{<:Any,N} for A in unpacked_arrays]
     concatenated_array::AbstractArray{<:Any,N} = cat(reshaped_arrays..., dims=find_wildcard(pattern))
     packed_shapes = Dims[size_wildcard(size(unpacked_array), pattern) for unpacked_array in unpacked_arrays]
@@ -66,7 +71,7 @@ julia> unpack(packed_array, packed_shapes, (:i, :j, *)) .|> size
 ```
 """
 function unpack(packed_array::AbstractArray{<:Any,N}, packed_shapes, pattern::PackPattern{N}) where N
-    checkpacking(pattern)
+    check_packing_pattern(pattern)
     inds = Iterators.accumulate(+, Iterators.map(prod, packed_shapes))
     unpacked_arrays = map(Iterators.flatten((0, inds)), inds, packed_shapes) do i, j, ps
         unpacked_array = selectdim(packed_array, find_wildcard(pattern), i+1:j)

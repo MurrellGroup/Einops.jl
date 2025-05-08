@@ -8,6 +8,7 @@ export ..
 
 include("utils.jl")
 export -->
+export parse_shape
 
 include("einops_str.jl")
 export @einops_str
