@@ -62,8 +62,7 @@ mapfilter(f, pred, xs) = map(f, filter(pred, xs))
 tokenize_generic(pattern) = Tuple(mapfilter(get_special_token ∘ Symbol, !isempty, split(pattern, ' ')))
 
 """
-    einops"a (b c) -> (c b a)"
-    einops"i j * k"
+    @einops_str -> Union{Pattern,Tuple}
 
 For parity with Python implementation.
 
@@ -76,8 +75,11 @@ julia> einops"a 1 b c -> (c b) a"
 julia> einops"embed token (head batch) -> (embed head) token batch"
 (:embed, :token, (:head, :batch)) --> ((:embed, :head), :token, :batch)
 
-julia> einops"i j * k" # for packing
+julia> einops"i j * k" # for pack/unpack
 (:i, :j, *, :k)
+
+julia> einops"a b _ d" # for parse_shape
+(:a, :b, -, :d)
 ```
 """
 macro einops_str(pattern)
