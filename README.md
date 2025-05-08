@@ -1,4 +1,4 @@
-# <img src="./docs/src/assets/logo.png" width="256" align="right" /> Einops
+# <img src="./docs/src/assets/logo-dark.png" width="256" align="right" /> Einops
 
 [![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://MurrellGroup.github.io/Einops.jl/stable/)
 [![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://MurrellGroup.github.io/Einops.jl/dev/)

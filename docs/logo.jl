@@ -43,7 +43,7 @@ GLMakie.activate!(; fxaa=true)
 CUBE     = 1.0f0
 SPACE    = 1.2f0
 GAP      = 1.1f0
-ALPHA    = 0.4f0
+ALPHA    = 0.2f0 # 0.4 for dark
 
 BLUE = RGB(0.251, 0.388, 0.847)
 GREEN = RGB(0.22, 0.596, 0.149)
