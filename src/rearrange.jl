@@ -45,8 +45,11 @@ end
 
 reshape_out(x, ::Tuple{Vararg{Symbol}}) = x
 
+# TODO: support taking vectors of arrays
+
 """
-    rearrange(x::AbstractArray, left --> right)
+    rearrange(array::AbstractArray, left --> right; context...)
+    rearrange(arrays, left --> right; context...)
 
 Rearrange the axes of `x` according to the pattern specified by `left --> right`.
 
@@ -68,7 +71,9 @@ julia> reshape(permutedims(reshape(rand(2,3,35), 2,3,5,7), (1,4,3,2)), 2,7,5*3) 
 (2, 7, 15)
 ```
 """
-function rearrange(x, (left, right); context...)
+function rearrange(x::AbstractArray, pattern::Pattern; context...)
+    @nospecialize pattern
+    left, right = pattern
     (!isempty(extract(typeof(..), left)) || !isempty(extract(typeof(..), right))) && throw(ArgumentError("Ellipses (..) are currently not supported"))
     left_names, right_names = extract(Symbol, left), extract(Symbol, right)
     reshaped_in = reshape_in(x, left; context...)
@@ -76,3 +81,7 @@ function rearrange(x, (left, right); context...)
     reshaped_out = reshape_out(permuted, right)
     return reshaped_out
 end
+
+rearrange(x::AbstractArray{<:AbstractArray}, pattern::Pattern; context...) = rearrange(stack(x), pattern; context...)
+
+rearrange(x, pattern::Pattern; context...) = rearrange(stack(x), pattern; context...)
