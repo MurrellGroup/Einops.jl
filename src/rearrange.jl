@@ -17,7 +17,7 @@ function reshape_in(x, left; context...)
             throw(ArgumentError("Invalid input dimension: $input_dim"))
         end
     end
-    return reshape(x, ntuple(i -> new_shape[i], length(extract(Symbol, left)))...)
+    return reshape(x, ntuple(i -> new_shape[i], length(extract(Symbol, left))))
 end
 
 reshape_in(x, ::Tuple{Vararg{Symbol}}; context...) = x
@@ -40,7 +40,7 @@ len(x::Int) = x == 1 ? 0 : throw(ArgumentError("Singleton dimension size is not 
 function reshape_out(x, right)
     size_iter = Iterators.Stateful(size(x))
     shape = Int[prod(Iterators.take(size_iter, len(dim)); init=1) for dim in right]
-    return reshape(x, shape...)
+    return reshape(x, ntuple(i -> shape[i], length(right)))
 end
 
 reshape_out(x, ::Tuple{Vararg{Symbol}}) = x

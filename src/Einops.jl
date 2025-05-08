@@ -19,10 +19,10 @@ export rearrange
 include("pack_unpack.jl")
 export pack, unpack
 
-# TODO: implement reduce, repeat
-Base.reduce(f, x::AbstractArray, pattern::Pattern; context...) = error("Not implemented")
-Base.repeat(x::AbstractArray, pattern::Pattern; context...) = error("Not implemented")
+include("reduce.jl")
+export reduce
 
-# TODO: einsum
+include("repeat.jl")
+export repeat
 
 end

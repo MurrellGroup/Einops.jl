@@ -34,6 +34,26 @@ julia> rearrange(images, (:b, (:h1, :h), (:w1, :w), :c) --> ((:b, :h1, :w1), :h,
 (128, 15, 20, 3)
 ```
 
+### `repeat`
+
+The `repeat` function will provide a concise way to repeat elements along existing or new axes. This can be implemented on top of `Base.repeat` since our methods can dispatch on `Einops.Pattern`.
+
+```julia
+julia> image = randn(30, 40); # a grayscale image (of shape height x width)
+
+# change it to RGB format by repeating in each channel
+julia> repeat(image, (:h, :w) --> (:h, :w, :c), c=3) |> size
+(30, 40, 3)
+
+# repeat image 2 times along height (vertical axis)
+julia> repeat(image, (:h, :w) --> ((:repeat, :h), :w), repeat=2) |> size
+(60, 40)
+
+# repeat image 2 time along height and 3 times along width
+julia> repeat(image, (:h, :w) --> ((:h2, :h), (:w3, :w)), h2=2, w3=3) |> size
+(60, 120)
+```
+
 ### `reduce` (Planned)
 
 The `reduce` function will allow for applying reduction operations (like `sum`, `mean`, `maximum`) along specified axes. This is different from typical `Base.reduce` functionality, which reduces using binary operations, but this could still be implemented on top of `Base.reduce` since our methods can dispatch on `Einops.Pattern`.
@@ -44,25 +64,15 @@ x = randn(100, 32, 64)
 y = reduce(maximum, x, (:t, :b, :c) --> (:b, :c)) # max-reduction on the first axis
 ```
 
-### `repeat` (Planned)
-
-The `repeat` function will provide a concise way to repeat elements along existing or new axes. This can be implemented on top of `Base.repeat` since our methods can dispatch on `Einops.Pattern`.
-
-```julia
-# Example (conceptual):
-image = randn(30, 40)
-rgb_image = repeat(image, (:h, :w) --> (:repeat, :h, :w), repeat=3)
-```
-
 ## Roadmap
 
 *   [x] Implement `rearrange`.
 *   [x] Support Python implementation's string syntax for patterns with string macro.
 *   [x] Implement `parse_shape`.
 *   [x] Implement `pack` and `unpack`.
-*   [ ] Support ellipsis notation (using `..` from [EllipsisNotation.jl](https://github.com/SciML/EllipsisNotation.jl)).
+*   [x] Implement `repeat`.
 *   [ ] Implement `reduce`.
-*   [ ] Implement `repeat`.
+*   [ ] Support ellipsis notation (using `..` from [EllipsisNotation.jl](https://github.com/SciML/EllipsisNotation.jl)).
 *   [ ] Explore integration with `PermutedDimsArray` or `TransmuteDims.jl` for lazy and statically inferrable permutations.
 *   [ ] Implement `einsum` (or wrap existing implementation).
 
