@@ -223,7 +223,10 @@ using Test, Statistics
             @test repeat(image, einops"h w -> (h h2) (w w2)", h2=2, w2=2) |> size == (60, 80)
 
             # 'pixelate' an image first by downsampling by 2x, then upsampling
-            @test repeat(reduce(mean, image, einops"(h h2) (w w2) -> h w", h2=2, w2=2), einops"h w -> (h h2) (w w2)", h2=2, w2=2) |> size == (30, 40)
+            @test repeat(
+                reduce(mean, image, einops"(h h2) (w w2) -> h w", h2=2, w2=2),
+                einops"h w -> (h h2) (w w2)", h2=2, w2=2
+            ) |> size == (30, 40)
 
         end
 

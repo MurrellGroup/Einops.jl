@@ -18,6 +18,12 @@ parse_shape
 rearrange
 ```
 
+## `reduce`
+
+```@docs
+reduce
+```
+
 ## `repeat`
 
 ```@docs
