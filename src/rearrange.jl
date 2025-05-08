@@ -58,17 +58,23 @@ Can always be expressed as a `reshape` + `permutedims` + `reshape`.
 # Examples
 
 ```jldoctest
-julia> rearrange(rand(2,3,5), (:a, :b, :c) --> (:c, :b, :a)) |> size
+julia> x = rand(2,3,5);
+
+julia> y = rearrange(x, (:a, :b, :c) --> (:c, :b, :a));
+
+julia> size(y)
 (5, 3, 2)
 
-julia> permutedims(rand(2,3,5), (3,2,1)) |> size
-(5, 3, 2)
+julia> y == permutedims(x, (3,2,1))
+true
 
-julia> rearrange(rand(2,3,35), (:a, :b, (:c, :d)) --> (:a, :d, (:c, :b)), c=5) |> size
-(2, 7, 15)
+julia> z = rearrange(x, (:a, :b, :c) --> (:a, (:c, :b)));
 
-julia> reshape(permutedims(reshape(rand(2,3,35), 2,3,5,7), (1,4,3,2)), 2,7,5*3) |> size
-(2, 7, 15)
+julia> size(z)
+(2, 15)
+
+julia> z == reshape(permutedims(x, (1,3,2)), 2,5*3)
+true
 ```
 """
 function rearrange(x::AbstractArray, pattern::Pattern; context...)

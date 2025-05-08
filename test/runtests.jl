@@ -177,21 +177,21 @@ using Test, Statistics
     @testset "repeat" begin
 
         x = rand(2,3)
-        @test repeat(x, einops"a b -> a b r", r=2) == reshape(repeat(x, 1,1,2), 2,3,2)
-        @test repeat(x, einops"a b -> b a r", r=2) == reshape(repeat(permutedims(x, (2,1)), 1,1,2), 3,2,2)
-        @test repeat(x, einops"a b -> a b 1 r", r=2) == reshape(repeat(x, 1,1,2), 2,3,1,2)
-        @test repeat(x, einops"a b -> a (b r)", r=2) == reshape(repeat(x, 1,1,2), 2,6)
-        @test repeat(x, einops"a b -> a (b r) 1", r=2) == reshape(repeat(x, 1,1,2), 2,6,1)
+        @test repeat(x, (:a, :b) --> (:a, :b, :r), r=2) == reshape(repeat(x, 1,1,2), 2,3,2)
+        @test repeat(x, (:a, :b) --> (:b, :a, :r), r=2) == reshape(repeat(permutedims(x, (2,1)), 1,1,2), 3,2,2)
+        @test repeat(x, (:a, :b) --> (:a, :b, 1, :r), r=2) == reshape(repeat(x, 1,1,2), 2,3,1,2)
+        @test repeat(x, (:a, :b) --> (:a, (:b, :r)), r=2) == reshape(repeat(x, 1,1,2), 2,6)
+        @test repeat(x, (:a, :b) --> (:a, (:b, :r), 1), r=2) == reshape(repeat(x, 1,1,2), 2,6,1)
 
         x = rand(2,1,3)
-        @test repeat(x, einops"a 1 b -> a b r", r=2) == reshape(repeat(reshape(x, 2,3), 1,1,2), 2,3,2)
-        @test repeat(x, einops"a 1 b -> a b 1 r", r=2) == reshape(repeat(reshape(x, 2,3), 1,1,2), 2,3,1,2)
-        @test repeat(x, einops"a 1 b -> a (b r)", r=2) == reshape(repeat(reshape(x, 2,3), 1,1,2), 2,6)
-        @test repeat(x, einops"a 1 b -> a (b r) 1", r=2) == reshape(repeat(reshape(x, 2,3), 1,1,2), 2,6,1)
+        @test repeat(x, (:a, 1, :b) --> (:a, :b, :r), r=2) == repeat(reshape(x, 2,3), 1,1,2)
+        @test repeat(x, (:a, 1, :b) --> (:a, :b, 1, :r), r=2) == reshape(repeat(reshape(x, 2,3), 1,1,2), 2,3,1,2)
+        @test repeat(x, (:a, 1, :b) --> (:a, (:b, :r)), r=2) == reshape(repeat(reshape(x, 2,3), 1,1,2), 2,6)
+        @test repeat(x, (:a, 1, :b) --> (:a, (:b, :r), 1), r=2) == reshape(repeat(reshape(x, 2,3), 1,1,2), 2,6,1)
 
         x = rand(2,3,35)
-        @test repeat(x, einops"a b (c c2) -> a (b c) c2 r", c2=7, r=2) == reshape(repeat(reshape(x, 2,3,5,7), 1,1,1,1,2), 2,3*5,7,2)
-        @test repeat(x, einops"a b (c c2) -> r c2 a (c b)", c2=7, r=2) == reshape(repeat(reshape(permutedims(reshape(x, 2,3,5,7), (4,1,3,2)), 1,7,2,5,3), 2,1,1,1,1), 2,7,2,5*3)
+        @test repeat(x, (:a, :b, (:c, :c2)) --> (:a, (:b, :c), :c2, :r), c2=7, r=2) == reshape(repeat(reshape(x, 2,3,5,7), 1,1,1,1,2), 2,3*5,7,2)
+        @test repeat(x, (:a, :b, (:c, :c2)) --> (:r, :c2, :a, (:c, :b)), c2=7, r=2) == reshape(repeat(reshape(permutedims(reshape(x, 2,3,5,7), (4,1,3,2)), 1,7,2,5,3), 2,1,1,1,1), 2,7,2,5*3)
 
         #x = rand(2,3,1,4)
         #@test repeat(x, einops"a b 1 (c c2) -> a (b c) c1 r", c1=1, r=2) == reshape(repeat(reshape(x, 2,3,4,1), 1,1,1,1,2), 2,12,1,2)

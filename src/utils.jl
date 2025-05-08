@@ -41,6 +41,8 @@ const ShapePattern{N} = NTuple{N,Union{Symbol,Ignored}}
 Capture the shape of an array in a pattern by naming dimensions using `Symbol`s,
 and `-` to ignore dimensions.
 
+# Examples
+
 ```jldoctest
 julia> parse_shape(rand(2,3,4), (:a, :b, -))
 (a = 2, b = 3)
