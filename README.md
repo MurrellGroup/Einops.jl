@@ -6,7 +6,6 @@
 
 <h1 align="center">Einops.jl</h1>
 
-
 <div align="center">
 
 [![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://MurrellGroup.github.io/Einops.jl/stable/)
@@ -16,7 +15,7 @@
 
 </div>
 
-Einops.jl is a Julia implementation of the [einops](https://einops.rocks) Python package, providing an elegant and intuitive notation for tensor operations, and unifying Julia's `reshape`, `permutedims`, `repeat` operations (and soon `reduce`).
+Einops.jl is a Julia implementation of the [einops](https://einops.rocks) Python package, providing an elegant and intuitive notation for tensor operations, and unifying Julia's `reshape`, `permutedims`, `reduce` and `repeat` functions.
 
 The Python implementation uses strings to specify the operation, but that would be tricky to compile in Julia, so a string macro `@einops_str` is exported for parity, e.g. `einops"a 1 b c -> (c b) a"`, which expands to the form `(:a, 1, :b, :c,) --> ((:c, :b), :a)`, allowing for compile-time awareness of dimensionalities, ensuring type stability.
 
@@ -24,7 +23,7 @@ The Python implementation uses strings to specify the operation, but that would 
 
 ### `rearrange`
 
-The `rearrange` combines reshaping and permutation operations into a single, expressive command:
+The `rearrange` combines reshaping and permutation operations into a single, expressive command.
 
 ```julia
 julia> images = randn(32, 30, 40, 3); # batch, height, width, channel
@@ -44,7 +43,7 @@ julia> rearrange(images, (:b, (:h1, :h), (:w1, :w), :c) --> ((:b, :h1, :w1), :h,
 
 ### `reduce`
 
-The `reduce` function will allow for applying reduction operations (like `sum`, `mean`, `maximum`) along specified axes. This is different from typical `Base.reduce` functionality, which reduces using binary operations, but this could still be implemented on top of `Base.reduce` since our methods can dispatch on `Einops.Pattern`.
+The method for `Base.reduce` dispatches on `Einops.Pattern`, applying reduction operations (like `sum`, `mean`, `maximum`) along specified axes. This is different from typical `Base.reduce` functionality, which reduces using binary operations.
 
 ```julia
 julia> x = randn(100, 32, 64);
@@ -60,7 +59,7 @@ julia> reduce(mean, x, ((:t5, :t), :b, :c) --> (:b, (:t, :c)), t5=5) |> size
 
 ### `repeat`
 
-The `repeat` function will provide a concise way to repeat elements along existing or new axes. This is implemented as a method of `Base.repeat`, dispatching on `Einops.Pattern`.
+The method for `Base.repeat` also dispatches on `Einops.Pattern`, and repeats elements along existing or new axes.
 
 ```julia
 julia> image = randn(30, 40); # a grayscale image (of shape height x width)
