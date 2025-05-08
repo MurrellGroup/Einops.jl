@@ -34,6 +34,7 @@ julia> packed_shapes
  ()
  (7,)
  (7, 9)
+```
 """
 function pack(unpacked_arrays, pattern::PackPattern{N}) where N
     check_packing_pattern(pattern)
