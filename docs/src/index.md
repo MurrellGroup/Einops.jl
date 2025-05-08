@@ -6,9 +6,18 @@ CurrentModule = Einops
 
 Documentation for [Einops](https://github.com/MurrellGroup/Einops.jl).
 
-```@index
+## Installation
+
+```julia
+using Pkg
+pkg"add Einops"
 ```
 
-```@autodocs
-Modules = [Einops]
+## Contents
+
+```@contents
+Pages = [
+    "index.md",
+    "api.md"
+]
 ```
