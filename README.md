@@ -1,9 +1,20 @@
-# <img src="./docs/src/assets/logo-dark.png" width="256" align="right" /> Einops
+
+
+<p align="center">
+  <img src="./docs/src/assets/logo-dark.png" width="256" />
+</p>
+
+<h1 align="center">Einops.jl</h1>
+
+
+<div align="center">
 
 [![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://MurrellGroup.github.io/Einops.jl/stable/)
 [![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://MurrellGroup.github.io/Einops.jl/dev/)
 [![Build Status](https://github.com/MurrellGroup/Einops.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/MurrellGroup/Einops.jl/actions/workflows/CI.yml?query=branch%3Amain)
 [![Coverage](https://codecov.io/gh/MurrellGroup/Einops.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/MurrellGroup/Einops.jl)
+
+</div>
 
 > [!WARNING]  
 > This package is still under development, and does not implement all of the features of the original (see [Roadmap](#Roadmap)).
@@ -36,7 +47,7 @@ julia> rearrange(images, (:b, (:h1, :h), (:w1, :w), :c) --> ((:b, :h1, :w1), :h,
 
 ### `repeat`
 
-The `repeat` function will provide a concise way to repeat elements along existing or new axes. This can be implemented on top of `Base.repeat` since our methods can dispatch on `Einops.Pattern`.
+The `repeat` function will provide a concise way to repeat elements along existing or new axes. This is implemented as a method of `Base.repeat`, dispatching on `Einops.Pattern`.
 
 ```julia
 julia> image = randn(30, 40); # a grayscale image (of shape height x width)
