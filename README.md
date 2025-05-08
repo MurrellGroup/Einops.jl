@@ -16,9 +16,6 @@
 
 </div>
 
-> [!WARNING]  
-> This package is still under development, and does not implement all of the features of the original (see [Roadmap](#Roadmap)).
-
 Einops.jl is a Julia implementation of the [einops](https://einops.rocks) Python package, providing an elegant and intuitive notation for tensor operations, and unifying Julia's `reshape`, `permutedims`, `repeat` operations (and soon `reduce`).
 
 The Python implementation uses strings to specify the operation, but that would be tricky to compile in Julia, so a string macro `@einops_str` is exported for parity, e.g. `einops"a 1 b c -> (c b) a"`, which expands to the form `(:a, 1, :b, :c,) --> ((:c, :b), :a)`, allowing for compile-time awareness of dimensionalities, ensuring type stability.
@@ -45,6 +42,22 @@ julia> rearrange(images, (:b, (:h1, :h), (:w1, :w), :c) --> ((:b, :h1, :w1), :h,
 (128, 15, 20, 3)
 ```
 
+### `reduce`
+
+The `reduce` function will allow for applying reduction operations (like `sum`, `mean`, `maximum`) along specified axes. This is different from typical `Base.reduce` functionality, which reduces using binary operations, but this could still be implemented on top of `Base.reduce` since our methods can dispatch on `Einops.Pattern`.
+
+```julia
+julia> x = randn(100, 32, 64);
+
+# perform max-reduction on the first axis
+# Axis t does not appear on the right - thus we reduce over t
+julia> reduce(maximum, x, (:t, :b, :c) --> (:b, :c)) |> size
+(32, 64)
+
+julia> reduce(mean, x, ((:t5, :t), :b, :c) --> (:b, (:t, :c)), t5=5) |> size
+(32, 1280)
+```
+
 ### `repeat`
 
 The `repeat` function will provide a concise way to repeat elements along existing or new axes. This is implemented as a method of `Base.repeat`, dispatching on `Einops.Pattern`.
@@ -65,24 +78,14 @@ julia> repeat(image, (:h, :w) --> ((:h2, :h), (:w3, :w)), h2=2, w3=3) |> size
 (60, 120)
 ```
 
-### `reduce` (Planned)
-
-The `reduce` function will allow for applying reduction operations (like `sum`, `mean`, `maximum`) along specified axes. This is different from typical `Base.reduce` functionality, which reduces using binary operations, but this could still be implemented on top of `Base.reduce` since our methods can dispatch on `Einops.Pattern`.
-
-```julia
-# Example (conceptual):
-x = randn(100, 32, 64)
-y = reduce(maximum, x, (:t, :b, :c) --> (:b, :c)) # max-reduction on the first axis
-```
-
 ## Roadmap
 
 *   [x] Implement `rearrange`.
 *   [x] Support Python implementation's string syntax for patterns with string macro.
-*   [x] Implement `parse_shape`.
 *   [x] Implement `pack` and `unpack`.
+*   [x] Implement `parse_shape`.
 *   [x] Implement `repeat`.
-*   [ ] Implement `reduce`.
+*   [x] Implement `reduce`.
 *   [ ] Support ellipsis notation (using `..` from [EllipsisNotation.jl](https://github.com/SciML/EllipsisNotation.jl)).
 *   [ ] Explore integration with `PermutedDimsArray` or `TransmuteDims.jl` for lazy and statically inferrable permutations.
 *   [ ] Implement `einsum` (or wrap existing implementation).
