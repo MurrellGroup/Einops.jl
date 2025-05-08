@@ -16,11 +16,11 @@ using Test, Statistics
     end
 
     @testset "parse_shape" begin
-        @test begin
-            x = rand(2,3,5)
-            shape = parse_shape(x, (:a, :b, :c))
-            (shape[:a], shape[:b], shape[:c]) == size(x)
-        end
+        x = rand(2,3,5)
+        @test parse_shape(x, (:a, :b, :c)) == (; a = 2, b = 3, c = 5)
+        @test parse_shape(x, (:a, :b, -)) == (; a = 2, b = 3)
+        @test parse_shape(x, (:a, -, -)) == (; a = 2)
+        @test parse_shape(x, (-, -, -)) == (;)
     end
 
     @testset "einops string tokenization" begin
@@ -126,7 +126,14 @@ using Test, Statistics
 
     @testset "reduce" begin
 
-        @test_throws "Not implemented" reduce(+, rand(2,3,4), einops"a b c -> b c")
+        x = rand(2,3,35)
+        @test reduce(sum, x, einops"a b c -> b c") == dropdims(sum(x, dims=1), dims=1)
+        @test reduce(sum, x, einops"a b (c c2) -> a c c2", c2=7) == reshape(sum(reshape(x, 2,3,5,7), dims=2), 2,5,7)
+        @test reduce(sum, x, einops"a b (c c2) -> (a c) c2", c2=7) == reshape(sum(reshape(x, 2,3,5,7), dims=2), 2*5,7)
+        @test reduce(sum, x, einops"a b (c c2) -> (c a) c2", c2=7) == reshape(permutedims(dropdims(sum(reshape(x, 2,3,5,7), dims=2), dims=2), (2,1,3)), 10,7)
+        # non-reducing:
+        @test reduce(sum, x, einops"a b (c c2) -> a b c c2", c2=7) == reshape(x, 2,3,5,7)
+        @test reduce(sum, x, einops"a b (c c2) -> a b c 1 c2", c2=7) == reshape(x, 2,3,5,1,7)
 
         @testset "Python API reference parity" begin
             # see https://einops.rocks/api/reduce/
@@ -138,17 +145,17 @@ using Test, Statistics
 
             # perform max-reduction on the first axis
             # Axis t does not appear on RHS - thus we reduced over t
-            @test_broken reduce(maximum, x, einops"t b c -> b c") == reducedrop(max, x, dims=1)
+            @test reduce(maximum, x, einops"t b c -> b c") == reducedrop(max, x, dims=1)
 
             # same as previous, but using verbose names for axes
-            @test_broken reduce(maximum, x, einops"time batch channel -> batch channel") == reducedrop(max, x, dims=1)
+            @test reduce(maximum, x, einops"time batch channel -> batch channel") == reducedrop(max, x, dims=1)
 
             # let's pretend now that x is a batch of images
             # with 4 dims: batch=10, height=20, width=30, channel=40
             x = randn(10, 20, 30, 40)
 
             # 2d max-pooling with kernel size = 2 * 2 for image processing
-            @test_broken reduce(maximum, x, einops"b c (h1 h2) (w1 w2) -> b c h1 w1", h2=2, w2=2) == reducedrop(max, reshape(x, 10, 20, 15, 2, 20, 2), dims=(4,6))
+            @test reduce(maximum, x, einops"b c (h1 h2) (w1 w2) -> b c h1 w1", h2=2, w2=2) == reducedrop(max, reshape(x, 10, 20, 15, 2, 20, 2), dims=(4,6))
 
             # same as previous, using anonymous axes,
             # note: only reduced axes can be anonymous
@@ -156,20 +163,20 @@ using Test, Statistics
 
             # adaptive 2d max-pooling to 3 * 4 grid,
             # each element is max of 10x10 tile in the original tensor.
-            @test_broken reduce(maximum, x, einops"b c (h1 h2) (w1 w2) -> b c h1 w2", h1=3, w1=4) |> size == (10, 20, 3, 4)
+            @test reduce(maximum, x, einops"b c (h1 h2) (w1 w2) -> b c h1 w1", h1=3, w1=4) |> size == (10, 20, 3, 4)
 
             # Global average pooling
-            @test_broken reduce(mean, x, einops"b c h w -> b c") |> size == (10, 20)
+            @test reduce(mean, x, einops"b c h w -> b c") |> size == (10, 20)
 
             # subtracting mean over batch for each channel;
             # similar to x - np.mean(x, axis=(0, 2, 3), keepdims=True)
-            @test_broken x .- reduce(mean, x, einops"b c h w -> 1 c 1 1") == x .- mean(x, dims=(1,3,4))
+            @test x .- reduce(mean, x, einops"b c h w -> 1 c 1 1") == x .- mean(x, dims=(1,3,4))
 
             # Subtracting per-image mean for each channel
-            @test_broken x .- reduce(mean, x, einops"b c h w -> b c 1 1") == x .- mean(x, dims=(3,4))
+            @test x .- reduce(mean, x, einops"b c h w -> b c 1 1") == x .- mean(x, dims=(3,4))
 
             # same as previous, but using empty compositions
-            @test_broken x .- reduce(mean, x, einops"b c h w -> b c () ()") == x .- mean(x, dims=(3,4))
+            @test x .- reduce(mean, x, einops"b c h w -> b c () ()") == x .- mean(x, dims=(3,4))
         end
 
     end
@@ -177,11 +184,12 @@ using Test, Statistics
     @testset "repeat" begin
 
         x = rand(2,3)
-        @test repeat(x, (:a, :b) --> (:a, :b, :r), r=2) == reshape(repeat(x, 1,1,2), 2,3,2)
-        @test repeat(x, (:a, :b) --> (:b, :a, :r), r=2) == reshape(repeat(permutedims(x, (2,1)), 1,1,2), 3,2,2)
+        @test repeat(x, (:a, :b) --> (:a, :b, :r), r=2) == repeat(x, 1,1,2)
+        @test repeat(x, (:a, :b) --> (:b, :a, :r), r=2) == repeat(permutedims(x, (2,1)), 1,1,2)
         @test repeat(x, (:a, :b) --> (:a, :b, 1, :r), r=2) == reshape(repeat(x, 1,1,2), 2,3,1,2)
         @test repeat(x, (:a, :b) --> (:a, (:b, :r)), r=2) == reshape(repeat(x, 1,1,2), 2,6)
         @test repeat(x, (:a, :b) --> (:a, (:b, :r), 1), r=2) == reshape(repeat(x, 1,1,2), 2,6,1)
+        @test_broken repeat(x, (:a, :b) --> (:a, :b, 2)) == repeat(x, 1,1,2)
 
         x = rand(2,1,3)
         @test repeat(x, (:a, 1, :b) --> (:a, :b, :r), r=2) == repeat(reshape(x, 2,3), 1,1,2)
@@ -215,10 +223,7 @@ using Test, Statistics
             @test repeat(image, einops"h w -> (h h2) (w w2)", h2=2, w2=2) |> size == (60, 80)
 
             # 'pixelate' an image first by downsampling by 2x, then upsampling
-            @test_broken begin
-                downsampled = reduce(mean, image, einops"(h h2) (w w2) -> h w", h2=2, w2=2)
-                repeat(downsampled, einops"h w -> (h h2) (w w2)", h2=2, w2=2) |> size == (60, 80)
-            end
+            @test repeat(reduce(mean, image, einops"(h h2) (w w2) -> h w", h2=2, w2=2), einops"h w -> (h h2) (w w2)", h2=2, w2=2) |> size == (30, 40)
 
         end
 
