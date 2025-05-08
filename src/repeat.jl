@@ -21,7 +21,7 @@ Repeat elements of `x` along specified axes.
 ```jldoctest
 julia> x = rand(2,3);
 
-julia> y = repeat(x, einops"a b -> a b 1 r", r=2);
+julia> y = repeat(x, (:a, :b) --> (:a, :b, 1, :r), r=2);
 
 julia> size(y)
 (2, 3, 1, 2)
@@ -29,7 +29,7 @@ julia> size(y)
 julia> y == reshape(repeat(x, 1,1,2), 2,3,1,2)
 true
 
-julia> z = repeat(x, einops"a b -> a (b r)", r=2);
+julia> z = repeat(x, (:a, :b) --> (:a, (:b, :r)), r=2);
 
 julia> size(z)
 (2, 6)
