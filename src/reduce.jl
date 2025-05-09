@@ -11,7 +11,7 @@ for reduction over specific dimensions. This should reduce the specified dimensi
 but not drop them.
 
 !!! note
-    This method is not meant for binary reduction operations like `min`, `min`, `+`, `*`, `&`, `|`, etc.,
+    This method is not meant for binary reduction operations like `+`, `*`, `min`, `max`, `|`, `&`, etc.,
     as would be expected from `Base.reduce`. Also note that Python's
     `min` and `max` are available in Julia as `minimum` and `maximum` respectively.
 
