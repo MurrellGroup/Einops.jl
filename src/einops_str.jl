@@ -2,9 +2,7 @@ function parse_pattern(pattern::AbstractString)
     occursin("->", pattern) || return tokenize_generic(pattern)
     lhs, rhs = strip.(split(pattern, "->"; limit = 2))
     occursin("->", rhs) && throw(ArgumentError("multiple \"->\" in pattern"))
-    lhs_axes = tokenize_side(lhs)
-    rhs_axes = tokenize_side(rhs)
-    return Tuple(lhs_axes) --> Tuple(rhs_axes)
+    return tokenize_side(lhs) --> tokenize_side(rhs)
 end
 
 function tokenize_side(side::AbstractString)
