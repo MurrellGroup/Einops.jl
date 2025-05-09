@@ -140,6 +140,15 @@ using Test, Statistics
         @test_throws ["Left names", "not unique"] reduce(sum, x, einops"a a (c c2) -> a c c2", c2=7)
         @test_throws ["Right names", "not unique"] reduce(sum, x, einops"a b (c c2) -> a a c c2", c2=7)
 
+        @testset "different operations" begin
+            for (T, op) in zip(
+                    [Float32, Float32, Float32, Float32, Float32, Bool, Bool],
+                    [    sum,    prod, minimum, maximum,    mean,  any,  all])
+                x = rand(T, 2,3,5)
+                @test reduce(op, x, einops"a b c -> (b a)") == vec(permutedims(dropdims(op(x, dims=3), dims=3), (2,1)))
+            end
+        end
+
         @testset "Python API reference parity" begin
             # see https://einops.rocks/api/reduce/
 
@@ -257,5 +266,7 @@ using Test, Statistics
         end
 
     end
+
+    include("test_zygote.jl")
 
 end

@@ -1,8 +1,11 @@
 module Einops
 
+using ChainRulesCore
+
 # TODO: support ellipses
 using EllipsisNotation
 export ..
+
 
 # TODO: use TransmuteDims.jl
 

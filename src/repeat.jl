@@ -40,16 +40,21 @@ true
 """
 function Base.repeat(x::AbstractArray, (left, right)::Pattern; context...)
     left_names, right_names = extract(Symbol, left), extract(Symbol, right)
-    repeat_dim_names = setdiff(right_names, left_names)
-    context_repeat = NamedTuple(d => context[d] for d in repeat_dim_names)
-    info_dim_names = setdiff(keys(context), repeat_dim_names)
-    context_info = NamedTuple(d => context[d] for d in info_dim_names)
-    isempty(setdiff(right_names, left_names, keys(context))) || throw(ArgumentError("Unknown dimension sizes: $(setdiff(right_names, left_names))"))
+    context_info, permutation, repeats = @ignore_derivatives begin
+        repeat_dim_names = setdiff(right_names, left_names)
+        context_repeat = NamedTuple(d => context[d] for d in repeat_dim_names)
+        info_dim_names = setdiff(keys(context), repeat_dim_names)
+        context_info = NamedTuple(d => context[d] for d in info_dim_names)
+        isempty(setdiff(right_names, left_names, keys(context))) || throw(ArgumentError("Unknown dimension sizes: $(setdiff(right_names, left_names))"))
+        right_names_no_repeat = setdiff(right_names, repeat_dim_names)
+        permutation = permutation_mapping(left_names, ntuple(i -> right_names_no_repeat[i], length(left_names)))
+        repeats = ntuple(i -> get(context_repeat, right_names[i], 1), length(right_names))
+        context_info, permutation, repeats
+    end
     expanded = reshape_in(x, left; context_info...)
-    right_names_no_repeat = setdiff(right_names, repeat_dim_names)
-    permuted = _permutedims(expanded, permutation_mapping(left_names, ntuple(i -> right_names_no_repeat[i], length(left_names))))
+    permuted = _permutedims(expanded, permutation)
     reshaped = reshape(permuted, prerepeat_shape(size(expanded), left_names, right_names))
-    repeated = repeat(reshaped, ntuple(i -> get(context_repeat, right_names[i], 1), length(right_names))...)
+    repeated = repeat(reshaped, repeats...)
     result = reshape_out(repeated, right)
     return result
 end

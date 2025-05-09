@@ -11,7 +11,7 @@ for reduction over specific dimensions. This should reduce the specified dimensi
 but not drop them.
 
 !!! note
-    This method is not meant for binary reduction operations like `min`, `min`, `+`, `*`, `&`, `|`, etc.,
+    This method is not meant for binary reduction operations like `+`, `*`, `min`, `max`, `|`, `&`, etc.,
     as would be expected from `Base.reduce`. Also note that Python's
     `min` and `max` are available in Julia as `minimum` and `maximum` respectively.
 
@@ -41,14 +41,14 @@ true
 """
 function Base.reduce(f::Function, x::AbstractArray, (left, right)::Pattern; context...)
     left_names, right_names = extract(Symbol, left), extract(Symbol, right)
-    isempty(setdiff(right_names, left_names)) || throw(ArgumentError("All dimension names on right side of pattern must be present on left side: $(setdiff(right_names, left_names))"))
+    @ignore_derivatives isempty(setdiff(right_names, left_names)) || throw(ArgumentError("All dimension names on right side of pattern must be present on left side: $(setdiff(right_names, left_names))"))
     allunique(extract(Symbol, right)) || throw(ArgumentError("Right names $(right) are not unique"))
-    reduced_dim_names = setdiff(left_names, right_names)
+    reduced_dim_names = @ignore_derivatives setdiff(left_names, right_names)
     reshaped = reshape_in(x, left; context...)
     reduced_dims = ntuple(i -> findfirst(isequal(reduced_dim_names[i]), left_names)::Int, length(left_names) - length(right_names))
     reduced = f(reshaped, dims=reduced_dims)
     dropped = dropdims(reduced, dims=reduced_dims)
-    reduced_left_names = intersect(left_names, right_names)
+    reduced_left_names = @ignore_derivatives intersect(left_names, right_names)
     permuted = _permutedims(dropped, permutation_mapping(ntuple(i -> reduced_left_names[i], length(right_names)), right_names))
     result = reshape_out(permuted, right)
     return result
