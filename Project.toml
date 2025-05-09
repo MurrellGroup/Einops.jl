@@ -4,9 +4,11 @@ authors = ["Anton Oresten <antonoresten@gmail.com> and contributors"]
 version = "0.1.0"
 
 [deps]
+ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
 EllipsisNotation = "da5c29d0-fa7d-589e-88eb-ea29b0a81949"
 
 [compat]
+ChainRulesCore = "1.7"
 EllipsisNotation = "1"
 Statistics = "1"
 julia = "1.10"

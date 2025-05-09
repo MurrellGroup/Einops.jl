@@ -26,7 +26,7 @@ reshape_in(x, ::Tuple{Vararg{Symbol}}; context...) = x
 # TODO: static `TransmuteDims.transmute` using type parameters of `Pattern`
 function permute(x, left, right)
     left_names, right_names = extract(Symbol, left), extract(Symbol, right)
-    isempty(setdiff(left_names, right_names)) || throw(ArgumentError("Set of left names $(left_names) does not match set of right names $(right_names)"))
+    @ignore_derivatives isempty(setdiff(left_names, right_names)) || throw(ArgumentError("Set of left names $(left_names) does not match set of right names $(right_names)"))
     allunique(left_names) || throw(ArgumentError("Left names $(left_names) are not unique"))
     allunique(right_names) || throw(ArgumentError("Right names $(right_names) are not unique"))
     perm = permutation_mapping(left_names, right_names)
