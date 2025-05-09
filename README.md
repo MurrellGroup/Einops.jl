@@ -86,9 +86,9 @@ julia> repeat(image, (:h, :w) --> ((:h2, :h), (:w3, :w)), h2=2, w3=3) |> size
 *   [x] Implement `repeat`.
 *   [x] Implement `reduce`.
 *   [x] Support automatic differentiation (tested with [Zygote.jl](https://github.com/FluxML/Zygote.jl)).
-*   [ ] Support ellipsis notation (using `..` from [EllipsisNotation.jl](https://github.com/SciML/EllipsisNotation.jl)).
-*   [ ] Explore integration with `PermutedDimsArray` or [TransmuteDims.jl](https://github.com/mcabbott/TransmuteDims.jl) for lazy and statically inferrable permutations.
-*   [ ] Implement `einsum` (or wrap existing implementation).
+*   [ ] Support ellipsis notation (using `..` from [EllipsisNotation.jl](https://github.com/SciML/EllipsisNotation.jl)) (See #9).
+*   [ ] Explore integration with `PermutedDimsArray` or [TransmuteDims.jl](https://github.com/mcabbott/TransmuteDims.jl) for lazy and statically inferrable permutations (See #3).
+*   [ ] Implement `einsum` (or wrap existing implementation) (See #2).
 
 ## Contributing
 
