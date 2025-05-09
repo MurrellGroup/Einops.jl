@@ -8,8 +8,6 @@ Base.iterate(::Pattern{L}) where L = (L, Val(:R))
 Base.iterate(::Pattern{<:Any,R}, ::Val{:R}) where R = (R, nothing)
 Base.iterate(::Pattern, ::Nothing) = nothing
 
-Base.inv(::Pattern{L,R}) where {L,R} = Pattern{R,L}()
-
 
 extract(::Type, ::Tuple{}) = ()
 function extract(T::Type, input_tuple::Tuple)
