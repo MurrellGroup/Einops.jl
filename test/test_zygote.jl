@@ -8,7 +8,7 @@ using Zygote
             rearranged = rearrange(x, (:b, :h, (:w, :c)) --> (:b, (:c, :h), :w), w=5)
             return sum(rearranged)
         end
-        @test gradient(f, x) isa Tuple{Array{Float32,3}}
+        @test gradient(f, x) isa Tuple{AbstractArray{Float32,3}}
     end
 
     @testset "reduce" begin
@@ -18,7 +18,7 @@ using Zygote
             return sum(rearranged)
         end
         @testset for op in [sum, prod, maximum, minimum, mean]
-            @test gradient(f, op, x) isa Tuple{Nothing, Array{Float32,3}}
+            @test gradient(f, op, x) isa Tuple{Nothing, AbstractArray{Float32,3}}
         end
     end
 
@@ -28,6 +28,6 @@ using Zygote
             repeated = repeat(x, (:b, (:h, :w)) --> (:b, :h, (:w, :c)), h=3, c=7)
             return sum(repeated)
         end
-        @test gradient(f, x) isa Tuple{Array{Float32,2}}
+        @test gradient(f, x) isa Tuple{AbstractArray{Float32,2}}
     end
 end
