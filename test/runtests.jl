@@ -131,9 +131,14 @@ using Test, Statistics
         @test reduce(sum, x, einops"a b (c c2) -> a c c2", c2=7) == reshape(sum(reshape(x, 2,3,5,7), dims=2), 2,5,7)
         @test reduce(sum, x, einops"a b (c c2) -> (a c) c2", c2=7) == reshape(sum(reshape(x, 2,3,5,7), dims=2), 2*5,7)
         @test reduce(sum, x, einops"a b (c c2) -> (c a) c2", c2=7) == reshape(permutedims(dropdims(sum(reshape(x, 2,3,5,7), dims=2), dims=2), (2,1,3)), 10,7)
+        
         # non-reducing:
         @test reduce(sum, x, einops"a b (c c2) -> a b c c2", c2=7) == reshape(x, 2,3,5,7)
         @test reduce(sum, x, einops"a b (c c2) -> a b c 1 c2", c2=7) == reshape(x, 2,3,5,1,7)
+
+        @test_throws "right side" reduce(sum, x, einops"a b (c c2) -> a b d c c2", c2=7)
+        @test_throws ["Left names", "not unique"] reduce(sum, x, einops"a a (c c2) -> a c c2", c2=7)
+        @test_throws ["Right names", "not unique"] reduce(sum, x, einops"a b (c c2) -> a a c c2", c2=7)
 
         @testset "Python API reference parity" begin
             # see https://einops.rocks/api/reduce/
@@ -155,11 +160,11 @@ using Test, Statistics
             x = randn(10, 20, 30, 40)
 
             # 2d max-pooling with kernel size = 2 * 2 for image processing
-            @test reduce(maximum, x, einops"b c (h1 h2) (w1 w2) -> b c h1 w1", h2=2, w2=2) == reducedrop(max, reshape(x, 10, 20, 15, 2, 20, 2), dims=(4,6))
+            @test reduce(maximum, x, einops"b c (h1 h2) (w1 w2) -> b c h1 w1", h2=2, w2=2) == reducedrop(max, reshape(x, 10,20,15,2,20,2), dims=(4,6))
 
             # same as previous, using anonymous axes,
             # note: only reduced axes can be anonymous
-            @test_broken reduce(maximum, x, einops"b c (h1 2) (w1 2) -> b c h1 w1") == reducedrop(max, reshape(x, 10, 20, 15, 2, 20, 2), dims=(4,6))
+            @test_broken reduce(maximum, x, einops"b c (h1 2) (w1 2) -> b c h1 w1") == reducedrop(max, reshape(x, 10,20,15,2,20,2), dims=(4,6))
 
             # adaptive 2d max-pooling to 3 * 4 grid,
             # each element is max of 10x10 tile in the original tensor.
