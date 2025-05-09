@@ -10,7 +10,7 @@ makedocs(;
     format=Documenter.HTML(;
         canonical="https://MurrellGroup.github.io/Einops.jl",
         edit_link="main",
-        assets=String[],
+        assets=String["assets/favicon.ico"],
     ),
     pages=[
         "Home" => "index.md",
