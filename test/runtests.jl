@@ -155,11 +155,11 @@ using Test, Statistics
             x = randn(10, 20, 30, 40)
 
             # 2d max-pooling with kernel size = 2 * 2 for image processing
-            @test reduce(maximum, x, einops"b c (h1 h2) (w1 w2) -> b c h1 w1", h2=2, w2=2) == reducedrop(max, reshape(x, 10, 20, 15, 2, 20, 2), dims=(4,6))
+            @test reduce(maximum, x, einops"b c (h1 h2) (w1 w2) -> b c h1 w1", h2=2, w2=2) == reducedrop(max, reshape(x, 10,20,15,2,20,2), dims=(4,6))
 
             # same as previous, using anonymous axes,
             # note: only reduced axes can be anonymous
-            @test_broken reduce(maximum, x, einops"b c (h1 2) (w1 2) -> b c h1 w1") == reducedrop(max, reshape(x, 10, 20, 15, 2, 20, 2), dims=(4,6))
+            @test_broken reduce(maximum, x, einops"b c (h1 2) (w1 2) -> b c h1 w1") == reducedrop(max, reshape(x, 10,20,15,2,20,2), dims=(4,6))
 
             # adaptive 2d max-pooling to 3 * 4 grid,
             # each element is max of 10x10 tile in the original tensor.

@@ -1,10 +1,14 @@
 # TODO: support integers > 1 in `left`
 
 """
-    reduce(f, x::AbstractArray, left --> right; context...)
+    reduce(f::Function, x::AbstractArray, left --> right; context...)
 
 Reduce an array over the dimensions specified by the pattern,
-using the function `f`, e.g. `sum`, `prod`, `minimum`, `maximum`, `any`, `all`, or `Statistics.mean`.
+using e.g. `sum`, `prod`, `minimum`, `maximum`, `any`, `all`, or `Statistics.mean`.
+
+`f` must accept a `dims::Tuple{Vararg{Int}}` keyword argument, allowing
+for reduction over specific dimensions. This should reduce the specified dimensions to singletons,
+but not drop them.
 
 !!! note
     This method is not meant for binary reduction operations like `min`, `min`, `+`, `*`, `&`, `|`, etc.,
@@ -35,15 +39,15 @@ julia> z == reshape(permutedims(dropdims(mean(reshape(x, 7,5,32,64), dims=1), di
 true
 ```
 """
-function Base.reduce(f, x::AbstractArray, (left, right)::Pattern; context...)
+function Base.reduce(f::Function, x::AbstractArray, (left, right)::Pattern; context...)
     left_names, right_names = extract(Symbol, left), extract(Symbol, right)
     reduced_dim_names = setdiff(left_names, right_names)
-    info_dim_names = setdiff(keys(context), reduced_dim_names)
-    reshaped = reshape_in(x, left; context...) # TODO: use info dims
-    reduced_dims = ntuple(i -> findfirst(isequal(reduced_dim_names[i]), left_names), length(reduced_dim_names))
-    reduced = dropdims(f(reshaped, dims=reduced_dims); dims=reduced_dims)
+    reshaped = reshape_in(x, left; context...)
+    reduced_dims = ntuple(i -> findfirst(isequal(reduced_dim_names[i]), left_names)::Int, length(left_names) - length(right_names))
+    reduced = f(reshaped, dims=reduced_dims)
+    dropped = dropdims(reduced, dims=reduced_dims)
     reduced_left_names = intersect(left_names, right_names)
-    permuted = _permutedims(reduced, permutation_mapping(ntuple(i -> reduced_left_names[i], length(right_names)), right_names))
+    permuted = _permutedims(dropped, permutation_mapping(ntuple(i -> reduced_left_names[i], length(right_names)), right_names))
     result = reshape_out(permuted, right)
     return result
 end
