@@ -131,7 +131,14 @@ using Test, Statistics
         @test reduce(sum, x, einops"a b (c c2) -> a c c2", c2=7) == reshape(sum(reshape(x, 2,3,5,7), dims=2), 2,5,7)
         @test reduce(sum, x, einops"a b (c c2) -> (a c) c2", c2=7) == reshape(sum(reshape(x, 2,3,5,7), dims=2), 2*5,7)
         @test reduce(sum, x, einops"a b (c c2) -> (c a) c2", c2=7) == reshape(permutedims(dropdims(sum(reshape(x, 2,3,5,7), dims=2), dims=2), (2,1,3)), 10,7)
-        
+
+        @test reduce(sum, [x, x], einops"a b c r -> a b c") == dropdims(sum(stack([x, x]), dims=4), dims=4)
+        @test reduce(sum, reshape([x, x], 1, 2), einops"a b c 1 r -> a b c") == dropdims(sum(stack([x, x]), dims=4), dims=4)
+        @test reduce(sum, (x, x), einops"a b c r -> a b c") == dropdims(sum(stack([x, x]), dims=4), dims=4)
+        @test reduce(mean, [x, x], einops"a b c r -> a b c") == x
+        @test reduce(maximum, reshape([x, x], 1, 2), einops"a b c 1 r -> a b c") == x
+        @test reduce(minimum, (x, x), einops"a b c r -> a b c") == x
+
         # non-reducing:
         @test reduce(sum, x, einops"a b (c c2) -> a b c c2", c2=7) == reshape(x, 2,3,5,7)
         @test reduce(sum, x, einops"a b (c c2) -> a b c 1 c2", c2=7) == reshape(x, 2,3,5,1,7)
@@ -204,6 +211,10 @@ using Test, Statistics
         @test repeat(x, (:a, :b) --> (:a, (:b, :r)), r=2) == reshape(repeat(x, 1,1,2), 2,6)
         @test repeat(x, (:a, :b) --> (:a, (:b, :r), 1), r=2) == reshape(repeat(x, 1,1,2), 2,6,1)
         @test_broken repeat(x, (:a, :b) --> (:a, :b, 2)) == repeat(x, 1,1,2)
+
+        @test repeat([x, x], einops"a b c -> a b c r", r=3) == repeat(x, 1,1,2,3)
+        @test repeat(reshape([x, x], 1, 2), einops"a b 1 c -> a b c r", r=3) == repeat(x, 1,1,2,3)
+        @test repeat((x, x), einops"a b c -> a b c r", r=3) == repeat(x, 1,1,2,3)
 
         x = rand(2,1,3)
         @test repeat(x, (:a, 1, :b) --> (:a, :b, :r), r=2) == repeat(reshape(x, 2,3), 1,1,2)

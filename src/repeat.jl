@@ -1,6 +1,5 @@
 _get(x, i::Int) = x[i]
 _get(x, ::Nothing) = 1
-
 function prerepeat_shape(input_shape::Dims, left::Tuple{Vararg{Symbol}}, right::NTuple{N,Symbol}) where N
     output_shape = map(key -> _get(input_shape, findfirst(isequal(key), left)), right)
     return ntuple(i -> output_shape[i], length(right))
@@ -55,6 +54,9 @@ function Base.repeat(x::AbstractArray, (left, right)::Pattern; context...)
     permuted = _permutedims(expanded, permutation)
     reshaped = reshape(permuted, prerepeat_shape(size(expanded), left_names, right_names))
     repeated = repeat(reshaped, repeats...)
-    result = reshape_out(repeated, right)
-    return result
+    collapsed = reshape_out(repeated, right)
+    return collapsed
 end
+
+Base.repeat(x::AbstractArray{<:AbstractArray}, pattern::Pattern; context...) = repeat(stack(x), pattern; context...)
+Base.repeat(x, pattern::Pattern; context...) = repeat(stack(x), pattern; context...)

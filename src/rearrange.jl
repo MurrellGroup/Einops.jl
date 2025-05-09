@@ -82,9 +82,7 @@ julia> z == reshape(permutedims(x, (1,3,2)), 2,5*3)
 true
 ```
 """
-function rearrange(x::AbstractArray, pattern::Pattern; context...)
-    @nospecialize pattern
-    left, right = pattern
+function rearrange(x::AbstractArray, (left, right)::Pattern; context...)
     (!isempty(extract(typeof(..), left)) || !isempty(extract(typeof(..), right))) && throw(ArgumentError("Ellipses (..) are currently not supported"))
     left_names, right_names = extract(Symbol, left), extract(Symbol, right)
     reshaped_in = reshape_in(x, left; context...)
@@ -94,5 +92,4 @@ function rearrange(x::AbstractArray, pattern::Pattern; context...)
 end
 
 rearrange(x::AbstractArray{<:AbstractArray}, pattern::Pattern; context...) = rearrange(stack(x), pattern; context...)
-
 rearrange(x, pattern::Pattern; context...) = rearrange(stack(x), pattern; context...)

@@ -40,16 +40,23 @@ true
 ```
 """
 function Base.reduce(f::Function, x::AbstractArray, (left, right)::Pattern; context...)
-    left_names, right_names = extract(Symbol, left), extract(Symbol, right)
-    @ignore_derivatives isempty(setdiff(right_names, left_names)) || throw(ArgumentError("All dimension names on right side of pattern must be present on left side: $(setdiff(right_names, left_names))"))
     allunique(extract(Symbol, right)) || throw(ArgumentError("Right names $(right) are not unique"))
-    reduced_dim_names = @ignore_derivatives setdiff(left_names, right_names)
-    reshaped = reshape_in(x, left; context...)
-    reduced_dims = ntuple(i -> findfirst(isequal(reduced_dim_names[i]), left_names)::Int, length(left_names) - length(right_names))
-    reduced = f(reshaped, dims=reduced_dims)
+    left_names, right_names = extract(Symbol, left), extract(Symbol, right)
+    expanded = reshape_in(x, left; context...)
+    reduced_dims, permutation = @ignore_derivatives begin
+        isempty(setdiff(right_names, left_names)) || throw(ArgumentError("All dimension names on right side of pattern must be present on left side: $(setdiff(right_names, left_names))"))
+        reduced_dim_names = setdiff(left_names, right_names)
+        reduced_dims = ntuple(i -> findfirst(isequal(reduced_dim_names[i]), left_names)::Int, length(left_names) - length(right_names))
+        reduced_left_names = intersect(left_names, right_names)
+        permutation = permutation_mapping(ntuple(i -> reduced_left_names[i], length(right_names)), right_names)
+        reduced_dims, permutation
+    end
+    reduced = f(expanded, dims=reduced_dims)
     dropped = dropdims(reduced, dims=reduced_dims)
-    reduced_left_names = @ignore_derivatives intersect(left_names, right_names)
-    permuted = _permutedims(dropped, permutation_mapping(ntuple(i -> reduced_left_names[i], length(right_names)), right_names))
-    result = reshape_out(permuted, right)
-    return result
+    permuted = _permutedims(dropped, permutation)
+    collapsed = reshape_out(permuted, right)
+    return collapsed
 end
+
+Base.reduce(f::Function, x::AbstractArray{<:AbstractArray}, pattern::Pattern; context...) = reduce(f, stack(x), pattern; context...)
+Base.reduce(f::Function, x, pattern::Pattern; context...) = reduce(f, stack(x), pattern; context...)
