@@ -1,5 +1,6 @@
 function reshape_in(x, left; context...)
     length(left) == ndims(x) || throw(ArgumentError("Input length $(length(left)) does not match number of dimensions $(ndims(x))"))
+    allunique(extract(Symbol, left)) || throw(ArgumentError("Left names $(left) are not unique"))
     new_shape = Int[]
     for (i, input_dim) in enumerate(left)
         if input_dim isa Int
@@ -38,6 +39,7 @@ len(::Symbol) = 1
 len(x::Int) = x == 1 ? 0 : throw(ArgumentError("Singleton dimension size is not 1: $x"))
 
 function reshape_out(x, right)
+    allunique(extract(Symbol, right)) || throw(ArgumentError("Right names $(right) are not unique"))
     size_iter = Iterators.Stateful(size(x))
     shape = Int[prod(Iterators.take(size_iter, len(dim)); init=1) for dim in right]
     return reshape(x, ntuple(i -> shape[i], length(right)))
