@@ -46,7 +46,6 @@ end
 
 splice(a::Dims, i::Int, r::Dims) = (a[1:i-1]..., r..., a[i+1:end]...)
 
-# FIXME: result is a reshape of a view ... so we should collect?
 """
     unpack(packed_array, packed_shapes, pattern)
 

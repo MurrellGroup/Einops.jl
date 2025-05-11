@@ -5,11 +5,6 @@ function prerepeat_shape(input_shape::Dims, left::Tuple{Vararg{Symbol}}, right::
     return ntuple(i -> output_shape[i], length(right))
 end
 
-# TODO: split repeat method into functions, and dispatch on left/right patterns to minimize operations
-# function _repeat end
-
-# TODO: support integers > 1 in `right`
-
 """
     repeat(x::AbstractArray, left --> right; context...)
 
@@ -37,7 +32,7 @@ julia> z == reshape(repeat(x, 1,1,2), 2,6)
 true
 ```
 """
-function Base.repeat(x::AbstractArray, (left, right)::Pattern; context...)
+function Base.repeat(x::AbstractArray, (left, right)::ArrowPattern; context...)
     left_names, right_names = extract(Symbol, left), extract(Symbol, right)
     context_info, permutation, repeats = @ignore_derivatives begin
         repeat_dim_names = setdiff(right_names, left_names)
@@ -58,5 +53,5 @@ function Base.repeat(x::AbstractArray, (left, right)::Pattern; context...)
     return collapsed
 end
 
-Base.repeat(x::AbstractArray{<:AbstractArray}, pattern::Pattern; context...) = repeat(stack(x), pattern; context...)
-Base.repeat(x, pattern::Pattern; context...) = repeat(stack(x), pattern; context...)
+Base.repeat(x::AbstractArray{<:AbstractArray}, pattern::ArrowPattern; context...) = repeat(stack(x), pattern; context...)
+Base.repeat(x, pattern::ArrowPattern; context...) = repeat(stack(x), pattern; context...)

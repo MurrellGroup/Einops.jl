@@ -1,8 +1,10 @@
 # API
 
-## `@einops_str`
+## Patterns
 
 ```@docs
+ArrowPattern
+-->
 @einops_str
 ```
 

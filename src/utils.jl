@@ -1,14 +1,3 @@
-struct Pattern{L,R} end
-
-# TODO: document -->
-(-->)(L, R) = Pattern{L, R}()
-
-Base.show(io::IO, ::Pattern{L,R}) where {L,R} = print(io, "$L --> $R")
-Base.iterate(::Pattern{L}) where L = (L, Val(:R))
-Base.iterate(::Pattern{<:Any,R}, ::Val{:R}) where R = (R, nothing)
-Base.iterate(::Pattern, ::Nothing) = nothing
-
-
 extract(::Type, ::Tuple{}) = ()
 function extract(T::Type, input_tuple::Tuple)
     first_element = first(input_tuple)
@@ -24,56 +13,64 @@ function extract(T::Type, input_tuple::Tuple)
 end
 
 
-@generated function findtype(::Type{T}, xs::Tuple) where T
-    inds = Int[]
-    for (i, el_type) in enumerate(xs.parameters)
-        el_type <: T && push!(inds, i)
+function reshape_in(x, left; context...)
+    length(left) == ndims(x) || throw(ArgumentError("Input length $(length(left)) does not match number of dimensions $(ndims(x))"))
+    allunique(extract(Symbol, left)) || throw(ArgumentError("Left names $(left) are not unique"))
+    new_shape = @ignore_derivatives begin
+        new_shape = Int[]
+        for (i, input_dim) in enumerate(left)
+            if input_dim isa Int
+                input_dim == 1 || throw(ArgumentError("Singleton dimension size is not 1: $input_dim"))
+                continue
+            elseif input_dim isa Symbol
+                push!(new_shape, size(x, i))
+            elseif input_dim isa Tuple{Vararg{Symbol}}
+                known_size = filter(name -> haskey(context, name), input_dim)
+                length(input_dim) - length(known_size) <= 1 || throw(ArgumentError("Unknown dimension sizes: $(filter(name -> !haskey(context, name), input_dim))"))
+                known_size_prod = prod(context[name] for name in known_size)
+                new_dim_size = (name in known_size ? context[name] : size(x, i) ÷ known_size_prod for name in input_dim)
+                push!(new_shape, new_dim_size...)
+            else
+                throw(ArgumentError("Invalid input dimension: $input_dim"))
+            end
+        end
+        new_shape
     end
-    return Expr(:tuple, inds...)
+    return reshape(x, ntuple(i -> new_shape[i], length(extract(Symbol, left))))
 end
 
-const Ignored = typeof(-)
-const ShapePattern{N} = NTuple{N,Union{Symbol,Ignored}}
-
-"""
-    parse_shape(x, pattern)
-
-Capture the shape of an array in a pattern by naming dimensions using `Symbol`s,
-and `-` to ignore dimensions.
-
-# Examples
-
-```jldoctest
-julia> parse_shape(rand(2,3,4), (:a, :b, -))
-(a = 2, b = 3)
-
-julia> parse_shape(rand(2,3), (-, -))
-NamedTuple()
-
-julia> parse_shape(rand(2,3,4,5), (:first, :second, :third, :fourth))
-(first = 2, second = 3, third = 4, fourth = 5)
-```
-
-The output is a `NamedTuple`, whose type contains the `Symbol` elements of the `pattern::NTuple{N,Union{Symbol,typeof(-)}}`,
-meaning that, unless the pattern is [constant-propagated](https://discourse.julialang.org/t/how-does-constant-propagation-work/22735/4),
-the output type is not known at compile time.
-
-`@code_warntype parse_shape(rand(2,3,4), (:a, :b, -))`
-
-`h() = parse_shape(rand(2,3,4), (:a, :b, -)); @code_warntype h()`
-"""
-function parse_shape(x::AbstractArray{<:Any,N}, pattern::ShapePattern{N}) where N
-    names = extract(Symbol, pattern)
-    allunique(names) || error("Pattern $(pattern) has duplicate elements")
-    inds = findtype(Symbol, pattern)
-    return NamedTuple{names,NTuple{length(inds),Int}}(size(x, i) for i in inds)
-end
+reshape_in(x, ::Tuple{Vararg{Symbol}}; context...) = x
 
 
 function permutation_mapping(left::NTuple{N,T}, right::NTuple{N,T}) where {N,T}
     perm::Vector{Int} = findfirst.(isequal.([right...]), Ref([left...]))
     return ntuple(i -> perm[i], Val(N))
 end
+
+# TODO: static `TransmuteDims.transmutedims` using type parameters of `ArrowPattern`
+function permute(x, left, right)
+    left_names, right_names = extract(Symbol, left), extract(Symbol, right)
+    @ignore_derivatives isempty(setdiff(left_names, right_names)) || throw(ArgumentError("Set of left names $(left_names) does not match set of right names $(right_names)"))
+    allunique(left_names) || throw(ArgumentError("Left names $(left_names) are not unique"))
+    allunique(right_names) || throw(ArgumentError("Right names $(right_names) are not unique"))
+    perm = permutation_mapping(left_names, right_names)
+    return _permutedims(x, perm)
+end
+
+
+# TODO: statically remove if no singleton/tuple dimensions
+len(dim::Tuple{Vararg{Symbol}}) = length(dim)
+len(::Symbol) = 1
+len(x::Int) = x == 1 ? 0 : throw(ArgumentError("Singleton dimension size is not 1: $x"))
+
+function reshape_out(x, right)
+    allunique(extract(Symbol, right)) || throw(ArgumentError("Right names $(right) are not unique"))
+    size_iter = Iterators.Stateful(size(x))
+    shape = @ignore_derivatives Int[prod(Iterators.take(size_iter, len(dim)); init=1) for dim in right]
+    return reshape(x, ntuple(i -> shape[i], length(right)))
+end
+
+reshape_out(x, ::Tuple{Vararg{Symbol}}) = x
 
 
 # fix for 1.10:

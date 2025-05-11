@@ -43,7 +43,7 @@ julia> rearrange(images, (:b, (:h1, :h), (:w1, :w), :c) --> ((:b, :h1, :w1), :h,
 
 ### `reduce`
 
-The method for `Base.reduce` dispatches on `Einops.Pattern`, applying reduction operations (like `sum`, `mean`, `maximum`) along specified axes. This is different from typical `Base.reduce` functionality, which reduces using binary operations.
+The method for `Base.reduce` dispatches on `ArrowPattern`, applying reduction operations (like `sum`, `mean`, `maximum`) along specified axes. This is different from typical `Base.reduce` functionality, which reduces using binary operations.
 
 ```julia
 julia> x = randn(100, 32, 64);
@@ -59,7 +59,7 @@ julia> reduce(mean, x, ((:t5, :t), :b, :c) --> (:b, (:t, :c)), t5=5) |> size
 
 ### `repeat`
 
-The method for `Base.repeat` also dispatches on `Einops.Pattern`, and repeats elements along existing or new axes.
+The method for `Base.repeat` also dispatches on `ArrowPattern`, and repeats elements along existing or new axes.
 
 ```julia
 julia> image = randn(30, 40); # a grayscale image (of shape height x width)

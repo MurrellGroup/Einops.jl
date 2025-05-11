@@ -1,5 +1,3 @@
-# TODO: support integers > 1 in `left`
-
 """
     reduce(f::Function, x::AbstractArray, left --> right; context...)
 
@@ -39,7 +37,7 @@ julia> z == reshape(permutedims(dropdims(mean(reshape(x, 7,5,32,64), dims=1), di
 true
 ```
 """
-function Base.reduce(f::Function, x::AbstractArray, (left, right)::Pattern; context...)
+function Base.reduce(f::Function, x::AbstractArray, (left, right)::ArrowPattern; context...)
     allunique(extract(Symbol, right)) || throw(ArgumentError("Right names $(right) are not unique"))
     left_names, right_names = extract(Symbol, left), extract(Symbol, right)
     expanded = reshape_in(x, left; context...)
@@ -58,5 +56,5 @@ function Base.reduce(f::Function, x::AbstractArray, (left, right)::Pattern; cont
     return collapsed
 end
 
-Base.reduce(f::Function, x::AbstractArray{<:AbstractArray}, pattern::Pattern; context...) = reduce(f, stack(x), pattern; context...)
-Base.reduce(f::Function, x, pattern::Pattern; context...) = reduce(f, stack(x), pattern; context...)
+Base.reduce(f::Function, x::AbstractArray{<:AbstractArray}, pattern::ArrowPattern; context...) = reduce(f, stack(x), pattern; context...)
+Base.reduce(f::Function, x, pattern::ArrowPattern; context...) = reduce(f, stack(x), pattern; context...)

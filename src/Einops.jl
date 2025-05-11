@@ -2,30 +2,29 @@ module Einops
 
 using ChainRulesCore
 
-# TODO: support ellipses
+# currently unsupported
 using EllipsisNotation
 export ..
 
-
-# TODO: use TransmuteDims.jl
-
 include("utils.jl")
-export -->
-export parse_shape
 
-include("einops_str.jl")
+include("patterns.jl")
+export ArrowPattern, -->
 export @einops_str
+
+include("parse_shape.jl")
+export parse_shape
 
 include("rearrange.jl")
 export rearrange
-
-include("pack_unpack.jl")
-export pack, unpack
 
 include("reduce.jl")
 export reduce
 
 include("repeat.jl")
 export repeat
+
+include("pack_unpack.jl")
+export pack, unpack
 
 end

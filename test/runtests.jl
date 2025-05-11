@@ -3,8 +3,13 @@ using Test, Statistics
 
 @testset "Einops.jl" begin
 
-    @testset "Pattern" begin
-        @test (() --> ()) isa Einops.Pattern
+    @testset "ArrowPattern" begin
+        @test (() --> ()) isa ArrowPattern
+        @test (() --> :a) isa ArrowPattern
+        @test (:a --> ()) isa ArrowPattern
+        @test (:a --> :a) isa ArrowPattern
+        @test (:a, EllipsisNotation.Ellipsis()) --> (:a,) isa ArrowPattern
+        @test repr((:a, :b, :c) --> (:c, :b, :a)) == "(:a, :b, :c) --> (:c, :b, :a)"
         @test begin
             left, right = (:a, :b, :c) --> (:c, :b, :a)
             left isa Tuple && right isa Tuple
@@ -12,7 +17,7 @@ using Test, Statistics
         @test_throws "attempt to access" begin
             left, right, _ = (:a, :b, :c) --> (:c, :b, :a)
         end
-        @test repr((:a, :b, :c) --> (:c, :b, :a)) == "(:a, :b, :c) --> (:c, :b, :a)"
+        @test_throws "Invalid pattern" (:a, 'b') --> ('b', :a)
     end
 
     @testset "parse_shape" begin
@@ -65,7 +70,6 @@ using Test, Statistics
         @test_throws ["Set of", "does not match"] rearrange(x, (:a, :b, :c) --> (:a, :b, :a))
         @test_throws ["Left names", "not unique"] rearrange(x, (:a, :a, :b) --> (:a, :b))
         @test_throws ["Right names", "not unique"] rearrange(x, (:a, :b, :c) --> (:a, :b, :c, :a))
-        @test_throws "Invalid input dimension" rearrange(x, (:a, :b, 'c') --> (:a, :b, :c))
         @test_broken rearrange(x, (:a, :b, ..) --> (:a, .., :b)) == rearrange(x, (:a, :b, :c) --> (:a, :c, :b))
 
         x = reshape(rand(1)) # size (), length 1
