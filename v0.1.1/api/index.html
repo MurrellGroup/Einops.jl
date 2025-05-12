@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>API · Einops.jl</title><meta name="title" content="API · Einops.jl"/><meta property="og:title" content="API · Einops.jl"/><meta property="twitter:title" content="API · Einops.jl"/><meta name="description" content="Documentation for Einops.jl."/><meta property="og:description" content="Documentation for Einops.jl."/><meta property="twitter:description" content="Documentation for Einops.jl."/><meta property="og:url" content="https://MurrellGroup.github.io/Einops.jl/api/"/><meta property="twitter:url" content="https://MurrellGroup.github.io/Einops.jl/api/"/><link rel="canonical" href="https://MurrellGroup.github.io/Einops.jl/api/"/><script data-outdated-warner src="../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../assets/documenter.js"></script><script src="../search_index.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../assets/themeswap.js"></script><link href="../assets/favicon.ico" rel="icon" type="image/x-icon"/></head><body><div id="documenter"><nav class="docs-sidebar"><a class="docs-logo" href="../"><img class="docs-light-only" src="../assets/logo.png" alt="Einops.jl logo"/><img class="docs-dark-only" src="../assets/logo-dark.png" alt="Einops.jl logo"/></a><div class="docs-package-name"><span class="docs-autofit"><a href="../">Einops.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../">Home</a></li><li class="is-active"><a class="tocitem" href>API</a><ul class="internal"><li><a class="tocitem" href="#Patterns"><span>Patterns</span></a></li><li><a class="tocitem" href="#parse_shape"><span><code>parse_shape</code></span></a></li><li><a class="tocitem" href="#rearrange"><span><code>rearrange</code></span></a></li><li><a class="tocitem" href="#reduce"><span><code>reduce</code></span></a></li><li><a class="tocitem" href="#repeat"><span><code>repeat</code></span></a></li><li><a class="tocitem" href="#pack-and-unpack"><span><code>pack</code> and <code>unpack</code></span></a></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>API</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>API</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/MurrellGroup/Einops.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/MurrellGroup/Einops.jl/blob/main/docs/src/api.md" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="API"><a class="docs-heading-anchor" href="#API">API</a><a id="API-1"></a><a class="docs-heading-anchor-permalink" href="#API" title="Permalink"></a></h1><h2 id="Patterns"><a class="docs-heading-anchor" href="#Patterns">Patterns</a><a id="Patterns-1"></a><a class="docs-heading-anchor-permalink" href="#Patterns" title="Permalink"></a></h2><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="Einops.ArrowPattern" href="#Einops.ArrowPattern"><code>Einops.ArrowPattern</code></a> — <span class="docstring-category">Type</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><pre><code class="language-julia hljs">ArrowPattern{L,R}</code></pre><p>A pair of tuples representing the left and right sides of a <code>rearrange</code>/<code>reduce</code>/<code>repeat</code> pattern. These tuples are stored as type parameters, such that the pattern is known at compile time.</p><p>An instance <code>ArrowPattern{L,R}()</code> gets shown as <code>L --&gt; R</code>, as <a href="#Einops.:--&gt;"><code>--&gt;</code></a> is used for construction.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/MurrellGroup/Einops.jl/blob/afa3a4507bcf6ee47ee101f6bfa64255f68384aa/src/patterns.jl#L6-L13">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="Einops.:--&gt;" href="#Einops.:--&gt;"><code>Einops.:--&gt;</code></a> — <span class="docstring-category">Function</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><pre><code class="language-julia hljs">--&gt;</code></pre><p>Create an <a href="#Einops.ArrowPattern"><code>ArrowPattern</code></a> from a left and right tuple. Non-tuple elements are automatically wrapped in a single-element tuple.</p><p><strong>Examples</strong></p><pre><code class="language-julia-repl hljs">julia&gt; pattern1 = (:a, :b, :c) --&gt; (:c, (:b, :a)) # nested tuple
+(:a, :b, :c) --&gt; (:c, (:b, :a))
+
+julia&gt; typeof(pattern1)
+ArrowPattern{(:a, :b, :c), (:c, (:b, :a))}
+
+julia&gt; pattern2 = :a --&gt; (1, :a) # single-element autoconversion
+(:a,) --&gt; (1, :a)
+
+julia&gt; typeof(pattern2)
+ArrowPattern{(:a,), (1, :a)}
+
+julia&gt; (:a, ..) --&gt; :a # exported ellipsis notation
+(:a, EllipsisNotation.Ellipsis()) --&gt; (:a,)</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/MurrellGroup/Einops.jl/blob/afa3a4507bcf6ee47ee101f6bfa64255f68384aa/src/patterns.jl#L28-L52">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="Einops.@einops_str" href="#Einops.@einops_str"><code>Einops.@einops_str</code></a> — <span class="docstring-category">Macro</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><pre><code class="language-julia hljs">@einops_str -&gt; Union{ArrowPattern,Tuple}</code></pre><p>For parity with Python implementation.</p><p><strong>Examples</strong></p><pre><code class="language-julia-repl hljs">julia&gt; einops&quot;a 1 b c -&gt; (c b) a&quot;
+(:a, 1, :b, :c) --&gt; ((:c, :b), :a)
+
+julia&gt; einops&quot;embed token (head batch) -&gt; (embed head) token batch&quot;
+(:embed, :token, (:head, :batch)) --&gt; ((:embed, :head), :token, :batch)
+
+julia&gt; einops&quot;i j * k&quot; # for pack/unpack
+(:i, :j, *, :k)
+
+julia&gt; einops&quot;a b _ d&quot; # for parse_shape
+(:a, :b, -, :d)</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/MurrellGroup/Einops.jl/blob/afa3a4507bcf6ee47ee101f6bfa64255f68384aa/src/patterns.jl#L122-L142">source</a></section></article><h2 id="parse_shape"><a class="docs-heading-anchor" href="#parse_shape"><code>parse_shape</code></a><a id="parse_shape-1"></a><a class="docs-heading-anchor-permalink" href="#parse_shape" title="Permalink"></a></h2><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="Einops.parse_shape" href="#Einops.parse_shape"><code>Einops.parse_shape</code></a> — <span class="docstring-category">Function</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><pre><code class="language-julia hljs">parse_shape(x, pattern)</code></pre><p>Capture the shape of an array in a pattern by naming dimensions using <code>Symbol</code>s, and <code>-</code> to ignore dimensions.</p><p><strong>Examples</strong></p><pre><code class="language-julia-repl hljs">julia&gt; parse_shape(rand(2,3,4), (:a, :b, -))
+(a = 2, b = 3)
+
+julia&gt; parse_shape(rand(2,3), (-, -))
+NamedTuple()
+
+julia&gt; parse_shape(rand(2,3,4,5), (:first, :second, :third, :fourth))
+(first = 2, second = 3, third = 4, fourth = 5)</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/MurrellGroup/Einops.jl/blob/afa3a4507bcf6ee47ee101f6bfa64255f68384aa/src/parse_shape.jl#L8-L26">source</a></section></article><h2 id="rearrange"><a class="docs-heading-anchor" href="#rearrange"><code>rearrange</code></a><a id="rearrange-1"></a><a class="docs-heading-anchor-permalink" href="#rearrange" title="Permalink"></a></h2><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="Einops.rearrange" href="#Einops.rearrange"><code>Einops.rearrange</code></a> — <span class="docstring-category">Function</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><pre><code class="language-julia hljs">rearrange(array::AbstractArray, left --&gt; right; context...)
+rearrange(arrays, left --&gt; right; context...)</code></pre><p>Rearrange the axes of <code>x</code> according to the pattern specified by <code>left --&gt; right</code>.</p><p>Can always be expressed as a <code>reshape</code> + <code>permutedims</code> + <code>reshape</code>.</p><p><strong>Examples</strong></p><pre><code class="language-julia-repl hljs">julia&gt; x = rand(2,3,5);
+
+julia&gt; y = rearrange(x, (:a, :b, :c) --&gt; (:c, :b, :a));
+
+julia&gt; size(y)
+(5, 3, 2)
+
+julia&gt; y == permutedims(x, (3,2,1))
+true
+
+julia&gt; z = rearrange(x, (:a, :b, :c) --&gt; (:a, (:c, :b)));
+
+julia&gt; size(z)
+(2, 15)
+
+julia&gt; z == reshape(permutedims(x, (1,3,2)), 2,5*3)
+true</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/MurrellGroup/Einops.jl/blob/afa3a4507bcf6ee47ee101f6bfa64255f68384aa/src/rearrange.jl#L1-L30">source</a></section></article><h2 id="reduce"><a class="docs-heading-anchor" href="#reduce"><code>reduce</code></a><a id="reduce-1"></a><a class="docs-heading-anchor-permalink" href="#reduce" title="Permalink"></a></h2><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="Base.reduce" href="#Base.reduce"><code>Base.reduce</code></a> — <span class="docstring-category">Function</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><pre><code class="language-julia hljs">reduce(f::Function, x::AbstractArray, left --&gt; right; context...)</code></pre><p>Reduce an array over the dimensions specified by the pattern, using e.g. <code>sum</code>, <code>prod</code>, <code>minimum</code>, <code>maximum</code>, <code>any</code>, <code>all</code>, or <code>Statistics.mean</code>.</p><p><code>f</code> must accept a <code>dims::Tuple{Vararg{Int}}</code> keyword argument, allowing for reduction over specific dimensions. This should reduce the specified dimensions to singletons, but not drop them.</p><div class="admonition is-info" id="Note-f63f05ef401351ec"><header class="admonition-header">Note<a class="admonition-anchor" href="#Note-f63f05ef401351ec" title="Permalink"></a></header><div class="admonition-body"><p>This method is not meant for binary reduction operations like <code>+</code>, <code>*</code>, <code>min</code>, <code>max</code>, <code>|</code>, <code>&amp;</code>, etc., as would be expected from <code>Base.reduce</code>. Also note that Python&#39;s <code>min</code> and <code>max</code> are available in Julia as <code>minimum</code> and <code>maximum</code> respectively.</p></div></div><p><strong>Examples</strong></p><pre><code class="language-julia-repl hljs">julia&gt; x = randn(35, 32, 64);
+
+julia&gt; y = reduce(sum, x, (:t, :b, :c) --&gt; (:b, :c));
+
+julia&gt; size(y)
+(32, 64)
+
+julia&gt; y == dropdims(sum(x, dims=1), dims=1)
+true
+
+julia&gt; using Statistics: mean
+
+julia&gt; z = reduce(mean, x, ((:t, :t5), :b, :c) --&gt; (:b, (:c, :t5)), t5=5);
+
+julia&gt; size(z)
+(32, 320)
+
+julia&gt; z == reshape(permutedims(dropdims(mean(reshape(x, 7,5,32,64), dims=1), dims=1), (2,3,1)), 32,320)
+true</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/MurrellGroup/Einops.jl/blob/afa3a4507bcf6ee47ee101f6bfa64255f68384aa/src/reduce.jl#L1-L39">source</a></section></article><h2 id="repeat"><a class="docs-heading-anchor" href="#repeat"><code>repeat</code></a><a id="repeat-1"></a><a class="docs-heading-anchor-permalink" href="#repeat" title="Permalink"></a></h2><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="Base.repeat" href="#Base.repeat"><code>Base.repeat</code></a> — <span class="docstring-category">Function</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><pre><code class="language-julia hljs">repeat(x::AbstractArray, left --&gt; right; context...)</code></pre><p>Repeat elements of <code>x</code> along specified axes.</p><p><strong>Examples</strong></p><pre><code class="language-julia-repl hljs">julia&gt; x = rand(2,3);
+
+julia&gt; y = repeat(x, (:a, :b) --&gt; (:a, :b, 1, :r), r=2);
+
+julia&gt; size(y)
+(2, 3, 1, 2)
+
+julia&gt; y == reshape(repeat(x, 1,1,2), 2,3,1,2)
+true
+
+julia&gt; z = repeat(x, (:a, :b) --&gt; (:a, (:b, :r)), r=2);
+
+julia&gt; size(z)
+(2, 6)
+
+julia&gt; z == reshape(repeat(x, 1,1,2), 2,6)
+true</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/MurrellGroup/Einops.jl/blob/afa3a4507bcf6ee47ee101f6bfa64255f68384aa/src/repeat.jl#L8-L34">source</a></section></article><h2 id="pack-and-unpack"><a class="docs-heading-anchor" href="#pack-and-unpack"><code>pack</code> and <code>unpack</code></a><a id="pack-and-unpack-1"></a><a class="docs-heading-anchor-permalink" href="#pack-and-unpack" title="Permalink"></a></h2><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="Einops.pack" href="#Einops.pack"><code>Einops.pack</code></a> — <span class="docstring-category">Function</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><pre><code class="language-julia hljs">pack(unpacked_arrays, pattern)</code></pre><p>Pack a vector of arrays into a single array according to the pattern.</p><p><strong>Examples</strong></p><pre><code class="language-julia-repl hljs">julia&gt; inputs = [rand(2,3,5), rand(2,3,7,5), rand(2,3,7,9,5)];
+
+julia&gt; packed_array, packed_shapes = pack(inputs, (:i, :j, *, :k));
+
+julia&gt; size(packed_array)
+(2, 3, 71, 5)
+
+julia&gt; packed_shapes
+3-element Vector{NTuple{N, Int64} where N}:
+ ()
+ (7,)
+ (7, 9)</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/MurrellGroup/Einops.jl/blob/afa3a4507bcf6ee47ee101f6bfa64255f68384aa/src/pack_unpack.jl#L17-L38">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="Einops.unpack" href="#Einops.unpack"><code>Einops.unpack</code></a> — <span class="docstring-category">Function</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><pre><code class="language-julia hljs">unpack(packed_array, packed_shapes, pattern)</code></pre><p>Unpack a single array into a vector of arrays according to the pattern.</p><p><strong>Examples</strong></p><pre><code class="language-julia-repl hljs">julia&gt; inputs = [rand(2,3,5), rand(2,3,7,5), rand(2,3,7,9,5)];
+
+julia&gt; inputs == unpack(pack(inputs, (:i, :j, *, :k))..., (:i, :j, *, :k))
+true
+
+julia&gt; packed_array = rand(2,3,16);
+
+julia&gt; packed_shapes = [(), (7,), (4, 2)];
+
+julia&gt; unpack(packed_array, packed_shapes, (:i, :j, *)) .|&gt; size
+3-element Vector{Tuple{Int64, Int64, Vararg{Int64}}}:
+ (2, 3)
+ (2, 3, 7)
+ (2, 3, 4, 2)</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/MurrellGroup/Einops.jl/blob/afa3a4507bcf6ee47ee101f6bfa64255f68384aa/src/pack_unpack.jl#L49-L72">source</a></section></article></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../">« Home</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.11.0 on <span class="colophon-date" title="Monday 12 May 2025 00:17">Monday 12 May 2025</span>. Using Julia version 1.11.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
