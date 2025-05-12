@@ -8,7 +8,7 @@ using Test, Statistics
         @test (() --> :a) isa ArrowPattern
         @test (:a --> ()) isa ArrowPattern
         @test (:a --> :a) isa ArrowPattern
-        @test (:a, ..) --> (:a,) isa ArrowPattern
+        @test ((:a, ..) --> (:a,)) isa ArrowPattern
         @test repr((:a, :b, :c) --> (:c, :b, :a)) == "(:a, :b, :c) --> (:c, :b, :a)"
         @test begin
             left, right = (:a, :b, :c) --> (:c, :b, :a)
