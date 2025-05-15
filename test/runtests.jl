@@ -1,5 +1,5 @@
 using Einops
-using Test, Statistics
+using Test, Statistics, LinearAlgebra
 
 @testset "Einops.jl" begin
 
@@ -43,6 +43,8 @@ using Test, Statistics
             @test einops"a b()->a()b" == ((:a, :b, ()) --> (:a, (), :b))
             @test einops"b ... -> b ..." == ((:b, ..) --> (:b, ..))
             @test einops"b b -> a a" == ((:b, :b) --> (:a, :a))
+            @test einops"i j, j k -> i k" == (((:i, :j), (:j, :k)) --> (:i, :k))
+            @test einops"batch h w, h w channel -> batch channel" == (((:batch, :h, :w), (:h, :w, :channel)) --> (:batch, :channel))
             @test einops"->" == (() --> ())
             @test einops"-> 1" == (() --> (1,))
             @test_throws "'.'" Einops.parse_pattern("-> .")
@@ -259,6 +261,35 @@ using Test, Statistics
 
         end
 
+    end
+
+    @testset "einsum" begin
+
+        a = rand(2,3,5)
+        b = rand(3,4,5)
+        @test einsum(a, b, ((:i, :j, :b), (:j, :k, :b)) --> (:i, :k, :b)) == stack([a * b for (a, b) in zip(eachslice(a, dims=3), eachslice(b, dims=3))])
+
+        x = rand(4,4)
+        @test einsum(x, einops"i i ->")[] == tr(x)
+
+        @testset "Python API reference parity" begin
+            # see https://einops.rocks/api/einsum/
+
+            # Filter a set of images:
+            batched_images = randn(128, 16, 16)
+            filters = randn(16, 16, 30)
+            @test einsum(batched_images, filters, einops"batch h w, h w channel -> batch channel") |> size == (128, 30)
+
+            # Matrix multiplication, with an unknown input shape:
+            batch_shape = (50, 30)
+            data = randn(batch_shape..., 20)
+            weights = randn(10, 20)
+            @test_broken einsum(weights, data, einops"out_dim in_dim, ... in_dim -> ... out_dim") |> size == (50, 30, 10)
+
+            # Matrix trace on a single tensor:
+            matrix = randn(10, 10)
+            @test einsum(matrix, einops"i i ->") |> size == ()
+        end
     end
 
     @testset "pack_unpack" begin

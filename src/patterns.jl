@@ -1,4 +1,4 @@
-const ArrowPatternNestedTuple = Tuple{Vararg{Union{Symbol,Int}}}
+const ArrowPatternNestedTuple = Tuple{Vararg{Union{Symbol,Int,EllipsisNotation.Ellipsis}}}
 const ArrowPatternSide = Tuple{Vararg{Union{Symbol,Int,EllipsisNotation.Ellipsis,ArrowPatternNestedTuple}}}
 
 check_side(x) = x isa ArrowPatternSide || throw(ArgumentError("Invalid pattern: $x. Expected instance of type $ArrowPatternSide"))
@@ -66,7 +66,50 @@ function parse_pattern(pattern::AbstractString)
 end
 
 function tokenize_side(side::AbstractString)
-
+    # Check if there are any commas outside of parentheses
+    has_commas = false
+    paren_depth = 0
+    for c in side
+        if c == '('
+            paren_depth += 1
+        elseif c == ')'
+            paren_depth -= 1
+        elseif c == ',' && paren_depth == 0
+            has_commas = true
+            break
+        end
+    end
+    
+    # If commas are present, split and process each part separately
+    if has_commas
+        parts = String[]
+        current_part = ""
+        paren_depth = 0
+        
+        for c in side
+            if c == '('
+                paren_depth += 1
+                current_part *= c
+            elseif c == ')'
+                paren_depth -= 1
+                current_part *= c
+            elseif c == ',' && paren_depth == 0
+                push!(parts, current_part)
+                current_part = ""
+            else
+                current_part *= c
+            end
+        end
+        
+        if !isempty(current_part)
+            push!(parts, current_part)
+        end
+        
+        # Process each part and create a tuple of tuples
+        return Tuple(tokenize_side(strip(part)) for part in parts)
+    end
+    
+    # Original tokenization logic for parts without commas
     function parse_token!(buf::IOBuffer, tokens::Vector)
         if position(buf) > 0
             s = String(take!(buf))

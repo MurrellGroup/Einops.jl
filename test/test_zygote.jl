@@ -30,4 +30,37 @@ using Zygote
         end
         @test gradient(f, x) isa Tuple{AbstractArray{Float32,2}}
     end
+
+    @testset "einsum" begin
+        # Test matrix multiplication with einsum
+        a = rand(Float32, 3, 4)
+        b = rand(Float32, 4, 5)
+        function f1(a, b)
+            # Matrix multiplication (i,j),(j,k)->(i,k)
+            result = einsum(a, b, ((:i, :j), (:j, :k)) --> (:i, :k))
+            return sum(result)
+        end
+        @test gradient(f1, a, b) isa Tuple{AbstractArray{Float32,2}, AbstractArray{Float32,2}}
+        
+        # Test einsum with batched tensors
+        x = rand(Float32, 2, 3, 4)
+        y = rand(Float32, 2, 4, 5)
+        function f2(x, y)
+            # Batched matrix multiplication
+            result = einsum(x, y, ((:b, :i, :j), (:b, :j, :k)) --> (:b, :i, :k))
+            return sum(result)
+        end
+        @test gradient(f2, x, y) isa Tuple{AbstractArray{Float32,3}, AbstractArray{Float32,3}}
+        
+        # Test contraction of multiple indices
+        c = rand(Float32, 3, 4, 5)
+        d = rand(Float32, 3, 5, 6)
+        function f3(c, d)
+            # Contract first and second indices
+            result = einsum(c, d, ((:i, :j, :k), (:i, :k, :l)) --> (:j, :l))
+            return sum(result)
+        end
+        @test gradient(f3, c, d) isa Tuple{AbstractArray{Float32,3}, AbstractArray{Float32,3}}
+    end
+
 end
