@@ -4,18 +4,17 @@ nested(x::Tuple) = (x,)
 nested(x::Tuple{Vararg{Tuple}}) = x
 
 """
-    einsum(args::Vararg{Union{AbstractArray,ArrowPattern{L,R}}}) where {L,R}
+    einsum(arrays..., (left --> right))
 
 Compute the einsum operation specified by the pattern.
 
 # Examples
 
 ```jldoctest
-julia> a = rand(2,3,4);
+julia> x, y = rand(2,3), rand(3,4);
 
-julia> b = rand(2,4,5);
-
-julia> einsum(a, b, )
+julia> einsum(x, y, ((:i, :j), (:j, :k)) --> (:i, :k)) == x * y
+true
 ```
 """
 function einsum(args::Vararg{Union{AbstractArray,ArrowPattern{L,R}}}) where {L,R}

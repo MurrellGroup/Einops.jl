@@ -1,5 +1,5 @@
-const ArrowPatternNestedTuple = Tuple{Vararg{Union{Symbol,Int,EllipsisNotation.Ellipsis}}}
-const ArrowPatternSide = Tuple{Vararg{Union{Symbol,Int,EllipsisNotation.Ellipsis,ArrowPatternNestedTuple}}}
+const ArrowPatternSideNestedTuple = Tuple{Vararg{Union{Symbol,Int,EllipsisNotation.Ellipsis}}}
+const ArrowPatternSide = Tuple{Vararg{Union{Symbol,Int,EllipsisNotation.Ellipsis,ArrowPatternSideNestedTuple}}}
 
 check_side(x) = x isa ArrowPatternSide || throw(ArgumentError("Invalid pattern: $x. Expected instance of type $ArrowPatternSide"))
 
@@ -176,11 +176,14 @@ julia> einops"a 1 b c -> (c b) a"
 julia> einops"embed token (head batch) -> (embed head) token batch"
 (:embed, :token, (:head, :batch)) --> ((:embed, :head), :token, :batch)
 
-julia> einops"i j * k" # for pack/unpack
-(:i, :j, *, :k)
+julia> einops"i j, j k -> i k" # for einsum
+((:i, :j), (:j, :k)) --> (:i, :k)
 
 julia> einops"a b _ d" # for parse_shape
 (:a, :b, -, :d)
+
+julia> einops"i j * k" # for pack/unpack
+(:i, :j, *, :k)
 ```
 """
 macro einops_str(pattern)
