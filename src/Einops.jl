@@ -24,6 +24,9 @@ export reduce
 include("repeat.jl")
 export repeat
 
+include("einsum.jl")
+export einsum
+
 include("pack_unpack.jl")
 export pack, unpack
 

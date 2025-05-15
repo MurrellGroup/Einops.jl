@@ -1,5 +1,5 @@
-const ArrowPatternNestedTuple = Tuple{Vararg{Union{Symbol,Int}}}
-const ArrowPatternSide = Tuple{Vararg{Union{Symbol,Int,EllipsisNotation.Ellipsis,ArrowPatternNestedTuple}}}
+const ArrowPatternSideNestedTuple = Tuple{Vararg{Union{Symbol,Int,EllipsisNotation.Ellipsis}}}
+const ArrowPatternSide = Tuple{Vararg{Union{Symbol,Int,EllipsisNotation.Ellipsis,ArrowPatternSideNestedTuple}}}
 
 check_side(x) = x isa ArrowPatternSide || throw(ArgumentError("Invalid pattern: $x. Expected instance of type $ArrowPatternSide"))
 
@@ -66,7 +66,14 @@ function parse_pattern(pattern::AbstractString)
 end
 
 function tokenize_side(side::AbstractString)
-
+    # Check if there are any commas
+    if occursin(",", side)
+        # Split by comma and process each part separately
+        parts = split(side, ",")
+        return Tuple(tokenize_side(strip(part)) for part in parts)
+    end
+    
+    # Original tokenization logic for parts without commas
     function parse_token!(buf::IOBuffer, tokens::Vector)
         if position(buf) > 0
             s = String(take!(buf))
@@ -133,11 +140,14 @@ julia> einops"a 1 b c -> (c b) a"
 julia> einops"embed token (head batch) -> (embed head) token batch"
 (:embed, :token, (:head, :batch)) --> ((:embed, :head), :token, :batch)
 
-julia> einops"i j * k" # for pack/unpack
-(:i, :j, *, :k)
+julia> einops"i j, j k -> i k" # for einsum
+((:i, :j), (:j, :k)) --> (:i, :k)
 
 julia> einops"a b _ d" # for parse_shape
 (:a, :b, -, :d)
+
+julia> einops"i j * k" # for pack/unpack
+(:i, :j, *, :k)
 ```
 """
 macro einops_str(pattern)
