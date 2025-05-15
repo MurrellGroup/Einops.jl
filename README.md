@@ -13,9 +13,9 @@
 
 </div>
 
-Einops.jl is a Julia implementation of the [einops](https://einops.rocks), providing an elegant and intuitive notation for tensor operations, and unifying Julia's `reshape`, `permutedims`, `reduce` and `repeat` functions, with support for automatic differentiation.
+Einops.jl is a Julia implementation of [einops](https://einops.rocks), providing an elegant and intuitive notation for tensor operations, and unifying Julia's `reshape`, `permutedims`, `reduce` and `repeat` functions, with support for automatic differentiation.
 
-The Python implementation uses strings to specify the operation, but that would be tricky to compile in Julia, so a string macro `@einops_str` is exported for parity, e.g. `einops"a 1 b c -> (c b) a"`, which expands to the form `(:a, 1, :b, :c,) --> ((:c, :b), :a)`, allowing for compile-time awareness of dimensionalities, ensuring type stability.
+The Python implementation uses strings to specify the operation, which is tricky to compile in Julia, so a string macro is exported for parity, e.g. `einops"(a b) 1 c -> (c b) a"` expands to the form `((:a, :b), 1, :c,) --> ((:c, :b), :a)`, where `-->` is a custom operator that puts the left and right operands as type parameters of a special pattern type. This allows for compile-time awareness of dimensionalities, ensuring type stability.
 
 ## Operations
 
@@ -67,12 +67,12 @@ julia> repeat(image, (:w, :h) --> (:c, :w, :h), c=3) |> size
 (3, 40, 30)
 
 # repeat image 2 times along height (vertical axis)
-julia> repeat(image, (:h, :w) --> ((:repeat, :h), :w), repeat=2) |> size
+julia> repeat(image, (:w, :h) --> ((:repeat, :h), :w), repeat=2) |> size
 (60, 40)
 
 # repeat image 2 time along height and 3 times along width
-julia> repeat(image, (:h, :w) --> ((:h2, :h), (:w3, :w)), h2=2, w3=3) |> size
-(60, 120)
+julia> repeat(image, (:w, :h) --> ((:w, :w3), (:h, :h2)), w3=3, h2=2) |> size
+(120, 60)
 ```
 
 ## Roadmap
