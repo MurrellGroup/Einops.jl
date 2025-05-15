@@ -66,46 +66,10 @@ function parse_pattern(pattern::AbstractString)
 end
 
 function tokenize_side(side::AbstractString)
-    # Check if there are any commas outside of parentheses
-    has_commas = false
-    paren_depth = 0
-    for c in side
-        if c == '('
-            paren_depth += 1
-        elseif c == ')'
-            paren_depth -= 1
-        elseif c == ',' && paren_depth == 0
-            has_commas = true
-            break
-        end
-    end
-    
-    # If commas are present, split and process each part separately
-    if has_commas
-        parts = String[]
-        current_part = ""
-        paren_depth = 0
-        
-        for c in side
-            if c == '('
-                paren_depth += 1
-                current_part *= c
-            elseif c == ')'
-                paren_depth -= 1
-                current_part *= c
-            elseif c == ',' && paren_depth == 0
-                push!(parts, current_part)
-                current_part = ""
-            else
-                current_part *= c
-            end
-        end
-        
-        if !isempty(current_part)
-            push!(parts, current_part)
-        end
-        
-        # Process each part and create a tuple of tuples
+    # Check if there are any commas
+    if occursin(",", side)
+        # Split by comma and process each part separately
+        parts = split(side, ",")
         return Tuple(tokenize_side(strip(part)) for part in parts)
     end
     

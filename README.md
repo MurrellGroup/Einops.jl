@@ -1,5 +1,3 @@
-
-
 <p align="center">
   <img src="./docs/src/assets/logo-dark.png" width="256" />
 </p>
@@ -26,19 +24,19 @@ The Python implementation uses strings to specify the operation, but that would 
 The `rearrange` combines reshaping and permutation operations into a single, expressive command.
 
 ```julia
-julia> images = randn(32, 30, 40, 3); # batch, height, width, channel
+julia> images = randn(3, 40, 30, 32); # channel, width, height, batch
 
 # reorder axes to "b c h w" format:
-julia> rearrange(images, (:b, :h, :w, :c) --> (:b, :c, :h, :w)) |> size
-(32, 3, 30, 40)
+julia> rearrange(images, (:c, :w, :h, :b) --> (:w, :h, :c, :b)) |> size
+(40, 30, 3, 32)
 
 # flatten each image into a vector
-julia> rearrange(images, (:b, :h, :w, :c) --> (:b, (:h, :w, :c))) |> size
+julia> rearrange(images, (c, :w, :h, :b) --> ((:c, :w, :h), :b)) |> size
 (32, 3600)
 
 # split each image into 4 smaller (top-left, top-right, bottom-left, bottom-right), 128 = 32 * 2 * 2
-julia> rearrange(images, (:b, (:h1, :h), (:w1, :w), :c) --> ((:b, :h1, :w1), :h, :w, :c), h1=2, w1=2) |> size
-(128, 15, 20, 3)
+julia> rearrange(images, (:c, (:w, :w2), (:h, :h2), :b) --> (:c, :w, :h, (:w2, :h2, :b)), h2=2, w2=2) |> size
+(3, 20, 15, 128)
 ```
 
 ### `reduce`
@@ -46,15 +44,15 @@ julia> rearrange(images, (:b, (:h1, :h), (:w1, :w), :c) --> ((:b, :h1, :w1), :h,
 The method for `Base.reduce` dispatches on `ArrowPattern`, applying reduction operations (like `sum`, `mean`, `maximum`) along specified axes. This is different from typical `Base.reduce` functionality, which reduces using binary operations.
 
 ```julia
-julia> x = randn(100, 32, 64);
+julia> x = randn(64, 32, 100);
 
 # perform max-reduction on the first axis
 # Axis t does not appear on the right - thus we reduce over t
-julia> reduce(maximum, x, (:t, :b, :c) --> (:b, :c)) |> size
-(32, 64)
+julia> reduce(maximum, x, (:c, :b, :t) --> (:c, :b)) |> size
+(64, 32)
 
-julia> reduce(mean, x, ((:t5, :t), :b, :c) --> (:b, (:t, :c)), t5=5) |> size
-(32, 1280)
+julia> reduce(mean, x, (:c, :b, (:t, :t5)) --> (:b, :c, :t), t5=5) |> size
+(32, 64, 20)
 ```
 
 ### `repeat`
@@ -62,11 +60,11 @@ julia> reduce(mean, x, ((:t5, :t), :b, :c) --> (:b, (:t, :c)), t5=5) |> size
 The method for `Base.repeat` also dispatches on `ArrowPattern`, and repeats elements along existing or new axes.
 
 ```julia
-julia> image = randn(30, 40); # a grayscale image (of shape height x width)
+julia> image = randn(40, 30); # a grayscale image (of shape height x width)
 
 # change it to RGB format by repeating in each channel
-julia> repeat(image, (:h, :w) --> (:h, :w, :c), c=3) |> size
-(30, 40, 3)
+julia> repeat(image, (:w, :h) --> (:c, :w, :h), c=3) |> size
+(3, 40, 30)
 
 # repeat image 2 times along height (vertical axis)
 julia> repeat(image, (:h, :w) --> ((:repeat, :h), :w), repeat=2) |> size
@@ -86,9 +84,9 @@ julia> repeat(image, (:h, :w) --> ((:h2, :h), (:w3, :w)), h2=2, w3=3) |> size
 *   [x] Implement `repeat`.
 *   [x] Implement `reduce`.
 *   [x] Support automatic differentiation (tested with [Zygote.jl](https://github.com/FluxML/Zygote.jl)).
+*   [x] Implement `einsum` (or wrap existing implementation) (see https://github.com/MurrellGroup/Einops.jl/issues/3).
 *   [ ] Support ellipsis notation (using `..` from [EllipsisNotation.jl](https://github.com/SciML/EllipsisNotation.jl)) (see https://github.com/MurrellGroup/Einops.jl/issues/9).
 *   [ ] Explore integration with `PermutedDimsArray` or [TransmuteDims.jl](https://github.com/mcabbott/TransmuteDims.jl) for lazy and statically inferrable permutations (see https://github.com/MurrellGroup/Einops.jl/issues/4).
-*   [ ] Implement `einsum` (or wrap existing implementation) (see https://github.com/MurrellGroup/Einops.jl/issues/3).
 
 ## Contributing
 
