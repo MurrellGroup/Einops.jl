@@ -32,6 +32,12 @@ reduce
 repeat
 ```
 
+## `einsum`
+
+```@docs
+einsum
+```
+
 ## `pack` and `unpack`
 
 ```@docs

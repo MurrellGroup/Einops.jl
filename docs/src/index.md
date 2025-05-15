@@ -21,3 +21,8 @@ Pages = [
     "api.md"
 ]
 ```
+
+## Index
+
+```@index
+```
