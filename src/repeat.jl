@@ -33,6 +33,8 @@ true
 ```
 """
 function Base.repeat(x::AbstractArray, (left, right)::ArrowPattern; context...)
+    right, extra_context = remove_anonymous_dims(right)
+    context = merge(NamedTuple(context), extra_context)
     left, right = replace_ellipses(left --> right, Val(ndims(x)))
     left_names, right_names = extract(Symbol, left), extract(Symbol, right)
     context_info, permutation, repeats::NTuple{length(right_names),Int} = @ignore_derivatives begin

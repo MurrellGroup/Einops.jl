@@ -1,6 +1,6 @@
 function ellipsis_replacement(side, N)
     count(==(..), side) <= 1 || throw("At most one ellipsis is allowed: $pattern")
-    return anonymous_symbols(N - length(side) + 1)
+    return anonymous_symbols(:__ellipsis, N - length(side) + 1)
 end
 
 @generated function replace_ellipses(::ArrowPattern{left,right}, ::Val{N}) where {left,right,N}

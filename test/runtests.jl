@@ -75,6 +75,7 @@ using Test, Statistics, LinearAlgebra
         @test_throws ["Set of", "does not match"] rearrange(x, (:a, :b, :c) --> (:a, :b, :a))
         @test_throws ["Left names", "not unique"] rearrange(x, (:a, :a, :b) --> (:a, :b))
         @test_throws ["Right names", "not unique"] rearrange(x, (:a, :b, :c) --> (:a, :b, :c, :a))
+        @test_throws "Invalid input dimension" rearrange(x, (:a, :b, (:c, 1)) --> (:a, :b, :c))
         @test rearrange(x, (:a, :b, ..) --> (:a, .., :b)) == rearrange(x, (:a, :b, :c) --> (:a, :c, :b))
         @test rearrange(x, (:a, :b, :c, ..) --> (:a, .., :b, :c)) == rearrange(x, (:a, :b, :c) --> (:a, :b, :c))
 
@@ -196,7 +197,8 @@ using Test, Statistics, LinearAlgebra
 
             # same as previous, using anonymous axes,
             # note: only reduced axes can be anonymous
-            @test_broken reduce(maximum, x, einops"b c (h1 2) (w1 2) -> b c h1 w1") == reducedrop(max, reshape(x, 10,20,15,2,20,2), dims=(4,6))
+            @test reduce(maximum, x, einops"b c (h1 2) (w1 2) -> b c h1 w1") == reducedrop(max, reshape(x, 10,20,15,2,20,2), dims=(4,6))
+            @test reduce(maximum, x, einops"a b c (2 4 5) -> a b c") == reduce(maximum, x, einops"a b c d -> a b c")
 
             # adaptive 2d max-pooling to 3 * 4 grid,
             # each element is max of 10x10 tile in the original tensor.
@@ -226,7 +228,7 @@ using Test, Statistics, LinearAlgebra
         @test repeat(x, (:a, :b) --> (:a, :b, 1, :r), r=2) == reshape(repeat(x, 1,1,2), 2,3,1,2)
         @test repeat(x, (:a, :b) --> (:a, (:b, :r)), r=2) == reshape(repeat(x, 1,1,2), 2,6)
         @test repeat(x, (:a, :b) --> (:a, (:b, :r), 1), r=2) == reshape(repeat(x, 1,1,2), 2,6,1)
-        @test_broken repeat(x, (:a, :b) --> (:a, :b, 2)) == repeat(x, 1,1,2)
+        @test repeat(x, (:a, :b) --> (:a, :b, 2)) == repeat(x, 1,1,2)
 
         @test repeat([x, x], einops"a b c -> a b c r", r=3) == repeat(x, 1,1,2,3)
         @test repeat(reshape([x, x], 1, 2), einops"a b 1 c -> a b c r", r=3) == repeat(x, 1,1,2,3)

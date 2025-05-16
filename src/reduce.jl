@@ -38,6 +38,8 @@ true
 ```
 """
 function Base.reduce(f::Function, x::AbstractArray, (left, right)::ArrowPattern; context...)
+    left, extra_context = remove_anonymous_dims(left)
+    context = merge(NamedTuple(context), extra_context)
     left, right = replace_ellipses(left --> right, Val(ndims(x)))
     allunique(extract(Symbol, right)) || throw(ArgumentError("Right names $(right) are not unique"))
     left_names, right_names = extract(Symbol, left), extract(Symbol, right)
