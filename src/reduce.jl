@@ -16,24 +16,24 @@ but not drop them.
 # Examples
 
 ```jldoctest
-julia> x = randn(35, 32, 64);
+julia> x = randn(64, 32, 35);
 
-julia> y = reduce(sum, x, (:t, :b, :c) --> (:b, :c));
+julia> y = reduce(sum, x, (:c, :b, :t) --> (:c, :b));
 
 julia> size(y)
-(32, 64)
+(64, 32)
 
-julia> y == dropdims(sum(x, dims=1), dims=1)
+julia> y == dropdims(sum(x, dims=3), dims=3)
 true
 
 julia> using Statistics: mean
 
-julia> z = reduce(mean, x, ((:t, :t5), :b, :c) --> (:b, (:c, :t5)), t5=5);
+julia> z = reduce(mean, x, (:c, :b, (:t5, :t)) --> ((:t5, :c), :b), t5=5);
 
 julia> size(z)
-(32, 320)
+(320, 32)
 
-julia> z == reshape(permutedims(dropdims(mean(reshape(x, 7,5,32,64), dims=1), dims=1), (2,3,1)), 32,320)
+julia> z == reshape(permutedims(dropdims(mean(reshape(x, 64,32,5,7), dims=4), dims=4), (3,1,2)), 320,32)
 true
 ```
 """
