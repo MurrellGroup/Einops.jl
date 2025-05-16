@@ -33,6 +33,12 @@ anonymous_symbols(prefix::Symbol, n::Int) = anonymous_symbols(Val(prefix), Val(n
         if t isa Integer && !isone(t)
             i += 1
             symbols[i]
+        elseif t isa Tuple && any(i -> i isa Integer && !isone(i), t)
+            while any(i -> i isa Integer && !isone(i), t)
+                i += 1
+                t = insertat(t, findfirst(i -> i isa Integer && !isone(i), t), (symbols[i],))
+            end
+            t
         else
             t
         end

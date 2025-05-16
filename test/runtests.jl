@@ -196,7 +196,7 @@ using Test, Statistics, LinearAlgebra
 
             # same as previous, using anonymous axes,
             # note: only reduced axes can be anonymous
-            @test_broken reduce(maximum, x, einops"b c (h1 2) (w1 2) -> b c h1 w1") == reducedrop(max, reshape(x, 10,20,15,2,20,2), dims=(4,6))
+            @test reduce(maximum, x, einops"b c (h1 2) (w1 2) -> b c h1 w1") == reducedrop(max, reshape(x, 10,20,15,2,20,2), dims=(4,6))
 
             # adaptive 2d max-pooling to 3 * 4 grid,
             # each element is max of 10x10 tile in the original tensor.
@@ -226,7 +226,7 @@ using Test, Statistics, LinearAlgebra
         @test repeat(x, (:a, :b) --> (:a, :b, 1, :r), r=2) == reshape(repeat(x, 1,1,2), 2,3,1,2)
         @test repeat(x, (:a, :b) --> (:a, (:b, :r)), r=2) == reshape(repeat(x, 1,1,2), 2,6)
         @test repeat(x, (:a, :b) --> (:a, (:b, :r), 1), r=2) == reshape(repeat(x, 1,1,2), 2,6,1)
-        @test_broken repeat(x, (:a, :b) --> (:a, :b, 2)) == repeat(x, 1,1,2)
+        @test repeat(x, (:a, :b) --> (:a, :b, 2)) == repeat(x, 1,1,2)
 
         @test repeat([x, x], einops"a b c -> a b c r", r=3) == repeat(x, 1,1,2,3)
         @test repeat(reshape([x, x], 1, 2), einops"a b 1 c -> a b c r", r=3) == repeat(x, 1,1,2,3)
