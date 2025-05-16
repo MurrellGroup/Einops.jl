@@ -13,12 +13,31 @@ function extract(T::Type, input_tuple::Tuple)
 end
 
 
-@generated function anonymous_symbols(::Val{N}) where N
+@generated function anonymous_symbols(::Val{prefix}, ::Val{N}) where {prefix,N}
     ex = :(())
     for i in 1:N
-        ex = :((($ex)..., $(:(Symbol($i)))))
+        ex = :((($ex)..., $(:(Symbol(:($prefix), '_', $i)))))
     end
     ex
 end
 
-anonymous_symbols(n::Int) = anonymous_symbols(Val(n))
+anonymous_symbols(prefix::Symbol, n::Int) = anonymous_symbols(Val(prefix), Val(n))
+
+
+@generated function remove_anonymous_dims(::Val{side}) where side
+    integers = filter(!isone, extract(Integer, side))
+    symbols = anonymous_symbols(:__anon_dim, length(integers))
+    context = NamedTuple{symbols}(integers)
+    i = 0
+    new_side = map(side) do t
+        if t isa Integer && !isone(t)
+            i += 1
+            symbols[i]
+        else
+            t
+        end
+    end
+    :($new_side, $context)
+end
+
+remove_anonymous_dims(side) = remove_anonymous_dims(Val(side))
