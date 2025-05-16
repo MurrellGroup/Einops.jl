@@ -22,13 +22,3 @@ end
 end
 
 anonymous_symbols(n::Int) = anonymous_symbols(Val(n))
-
-
-@generated function anonymous_dims_to_context(::Val{side}) where side
-    integers = filter(!isone, extract(Integer, side))
-    symbols = anonymous_symbols(length(integers))
-    context = NamedTuple{symbols}(integers)
-    :($context)
-end
-
-anonymous_dims_to_context(side) = anonymous_dims_to_context(Val(side))
