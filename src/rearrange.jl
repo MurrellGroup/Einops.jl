@@ -29,6 +29,7 @@ true
 ```
 """
 function rearrange(x::AbstractArray, (left, right)::ArrowPattern; context...)
+    left, right = replace_ellipses(left --> right, Val(ndims(x)))
     (!isempty(extract(typeof(..), left)) || !isempty(extract(typeof(..), right))) && throw(ArgumentError("Ellipses (..) are currently not supported"))
     left_names, right_names = extract(Symbol, left), extract(Symbol, right)
     reshaped_in = reshape_in(x, left; context...)

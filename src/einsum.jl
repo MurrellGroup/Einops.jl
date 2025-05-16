@@ -19,5 +19,7 @@ true
 """
 function einsum(args::Vararg{Union{AbstractArray,ArrowPattern{L,R}}}) where {L,R}
     arrays::Tuple{Vararg{AbstractArray}} = Base.front(args)
-    return StaticEinCode{Symbol,nested(L),R}()(arrays...)
+    last(args)::ArrowPattern
+    L′, R′ = replace_ellipses_einsum(nested(L) --> R, Val(ndims.(arrays)))
+    return StaticEinCode{Symbol,L′,R′}()(arrays...)
 end

@@ -26,6 +26,9 @@ using Test, Statistics, LinearAlgebra
         @test parse_shape(x, (:a, :b, -)) == (; a = 2, b = 3)
         @test parse_shape(x, (:a, -, -)) == (; a = 2)
         @test parse_shape(x, (-, -, -)) == (;)
+        @test parse_shape(x, (:a, ..)) == (; a = 2)
+        @test parse_shape(x, (:a, :b, ..)) == (; a = 2, b = 3)
+        @test parse_shape(x, (:a, :b, :c, ..)) == (; a = 2, b = 3, c = 5)
     end
 
     @testset "einops string tokenization" begin
@@ -72,7 +75,8 @@ using Test, Statistics, LinearAlgebra
         @test_throws ["Set of", "does not match"] rearrange(x, (:a, :b, :c) --> (:a, :b, :a))
         @test_throws ["Left names", "not unique"] rearrange(x, (:a, :a, :b) --> (:a, :b))
         @test_throws ["Right names", "not unique"] rearrange(x, (:a, :b, :c) --> (:a, :b, :c, :a))
-        @test_broken rearrange(x, (:a, :b, ..) --> (:a, .., :b)) == rearrange(x, (:a, :b, :c) --> (:a, :c, :b))
+        @test rearrange(x, (:a, :b, ..) --> (:a, .., :b)) == rearrange(x, (:a, :b, :c) --> (:a, :c, :b))
+        @test rearrange(x, (:a, :b, :c, ..) --> (:a, .., :b, :c)) == rearrange(x, (:a, :b, :c) --> (:a, :b, :c))
 
         x = reshape(rand(1)) # size (), length 1
         @test rearrange(x, () --> ()) == x
@@ -137,6 +141,12 @@ using Test, Statistics, LinearAlgebra
         @test reduce(sum, x, einops"a b (c c2) -> a c c2", c2=7) == reshape(sum(reshape(x, 2,3,5,7), dims=2), 2,5,7)
         @test reduce(sum, x, einops"a b (c c2) -> (a c) c2", c2=7) == reshape(sum(reshape(x, 2,3,5,7), dims=2), 2*5,7)
         @test reduce(sum, x, einops"a b (c c2) -> (c a) c2", c2=7) == reshape(permutedims(dropdims(sum(reshape(x, 2,3,5,7), dims=2), dims=2), (2,1,3)), 10,7)
+        @test reduce(sum, x, einops"a b ... -> b ...") == reduce(sum, x, einops"a b c -> b c")
+        @test reduce(sum, x, einops"a b ... -> ... b") == reduce(sum, x, einops"a b c -> c b")
+        @test reduce(sum, x, einops"a b ... -> b") == reduce(sum, x, einops"a b c -> b")
+        @test reduce(sum, x, einops"a b ... -> ...") == reduce(sum, x, einops"a b c -> c")
+        @test reduce(sum, x, einops"a b ... -> (a ...)") == reduce(sum, x, einops"a b c -> (a c)")
+        @test reduce(sum, x, einops"a b ... -> (... b)") == reduce(sum, x, einops"a b c -> (c b)")
 
         @test reduce(sum, [x, x], einops"a b c r -> a b c") == dropdims(sum(stack([x, x]), dims=4), dims=4)
         @test reduce(sum, reshape([x, x], 1, 2), einops"a b c 1 r -> a b c") == dropdims(sum(stack([x, x]), dims=4), dims=4)
@@ -228,6 +238,9 @@ using Test, Statistics, LinearAlgebra
         @test repeat(x, (:a, 1, :b) --> (:a, (:b, :r)), r=2) == reshape(repeat(reshape(x, 2,3), 1,1,2), 2,6)
         @test repeat(x, (:a, 1, :b) --> (:a, (:b, :r), 1), r=2) == reshape(repeat(reshape(x, 2,3), 1,1,2), 2,6,1)
 
+        @test repeat(x, einops"a ... -> a (... r)", r=2) == repeat(x, einops"a b c -> a (b c r)", r=2)
+        @test repeat(x, einops"a b ... -> a (b ... r)", r=2) == repeat(x, einops"a b c -> a (b c r)", r=2)
+
         x = rand(2,3,35)
         @test repeat(x, (:a, :b, (:c, :c2)) --> (:a, (:b, :c), :c2, :r), c2=7, r=2) == reshape(repeat(reshape(x, 2,3,5,7), 1,1,1,1,2), 2,3*5,7,2)
         @test repeat(x, (:a, :b, (:c, :c2)) --> (:r, :c2, :a, (:c, :b)), c2=7, r=2) == reshape(repeat(reshape(permutedims(reshape(x, 2,3,5,7), (4,1,3,2)), 1,7,2,5,3), 2,1,1,1,1), 2,7,2,5*3)
@@ -284,7 +297,7 @@ using Test, Statistics, LinearAlgebra
             batch_shape = (50, 30)
             data = randn(batch_shape..., 20)
             weights = randn(10, 20)
-            @test_broken einsum(weights, data, einops"out_dim in_dim, ... in_dim -> ... out_dim") |> size == (50, 30, 10)
+            @test einsum(weights, data, einops"out_dim in_dim, ... in_dim -> ... out_dim") |> size == (50, 30, 10)
 
             # Matrix trace on a single tensor:
             matrix = randn(10, 10)

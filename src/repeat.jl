@@ -33,8 +33,9 @@ true
 ```
 """
 function Base.repeat(x::AbstractArray, (left, right)::ArrowPattern; context...)
+    left, right = replace_ellipses(left --> right, Val(ndims(x)))
     left_names, right_names = extract(Symbol, left), extract(Symbol, right)
-    context_info, permutation, repeats = @ignore_derivatives begin
+    context_info, permutation, repeats::NTuple{length(right_names),Int} = @ignore_derivatives begin
         repeat_dim_names = setdiff(right_names, left_names)
         context_repeat = NamedTuple(d => context[d] for d in repeat_dim_names)
         info_dim_names = setdiff(keys(context), repeat_dim_names)
