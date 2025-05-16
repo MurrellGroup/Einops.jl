@@ -1,18 +1,3 @@
-extract(::Type, ::Tuple{}) = ()
-function extract(T::Type, input_tuple::Tuple)
-    first_element = first(input_tuple)
-    rest_elements = Base.tail(input_tuple)
-    instances_from_first = if first_element isa T
-        (first_element,)
-    elseif first_element isa Tuple
-        extract(T, first_element)
-    else
-        ()
-    end
-    return (instances_from_first..., extract(T, rest_elements)...)
-end
-
-
 function reshape_in(x, left; context...)
     length(left) == ndims(x) || throw(ArgumentError("Input length $(length(left)) does not match number of dimensions $(ndims(x))"))
     allunique(extract(Symbol, left)) || throw(ArgumentError("Left names $(left) are not unique"))

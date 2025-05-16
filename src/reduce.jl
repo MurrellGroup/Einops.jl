@@ -38,10 +38,11 @@ true
 ```
 """
 function Base.reduce(f::Function, x::AbstractArray, (left, right)::ArrowPattern; context...)
+    left, right = replace_ellipses(left --> right, Val(ndims(x)))
     allunique(extract(Symbol, right)) || throw(ArgumentError("Right names $(right) are not unique"))
     left_names, right_names = extract(Symbol, left), extract(Symbol, right)
     expanded = reshape_in(x, left; context...)
-    reduced_dims, permutation = @ignore_derivatives begin
+    reduced_dims::NTuple{length(left_names)-length(right_names),Int}, permutation = @ignore_derivatives begin
         isempty(setdiff(right_names, left_names)) || throw(ArgumentError("All dimension names on right side of pattern must be present on left side: $(setdiff(right_names, left_names))"))
         reduced_dim_names = setdiff(left_names, right_names)
         reduced_dims = ntuple(i -> findfirst(isequal(reduced_dim_names[i]), left_names)::Int, length(left_names) - length(right_names))

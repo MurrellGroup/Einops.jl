@@ -7,6 +7,7 @@ version = "0.1.2"
 ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
 EllipsisNotation = "da5c29d0-fa7d-589e-88eb-ea29b0a81949"
 OMEinsum = "ebe7aa44-baf0-506c-a96f-8464559b3922"
+TupleTools = "9d95972d-f1c8-5527-a6e0-b4b365fa01f6"
 
 [compat]
 ChainRulesCore = "1.7"
@@ -14,6 +15,7 @@ EllipsisNotation = "1"
 LinearAlgebra = "1"
 OMEinsum = "0.8"
 Statistics = "1"
+TupleTools = "1.6.0"
 Zygote = "0.6, 0.7"
 julia = "1.9"
 

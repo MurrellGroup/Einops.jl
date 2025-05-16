@@ -1,14 +1,12 @@
 module Einops
 
 using ChainRulesCore
-
-# currently unsupported
-using EllipsisNotation
-export ..
+using EllipsisNotation; export ..
+using TupleTools: flatten, insertat
 
 include("utils.jl")
 
-include("patterns.jl")
+include("patterns/patterns.jl")
 export ArrowPattern, -->
 export @einops_str
 
