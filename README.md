@@ -13,7 +13,7 @@
 
 </div>
 
-Einops.jl is a Julia implementation of [einops](https://einops.rocks), providing an elegant and intuitive notation for tensor operations, and unifying Julia's `reshape`, `permutedims`, `reduce` and `repeat` functions, with support for automatic differentiation.
+Einops.jl is a Julia implementation of [einops](https://einops.rocks), providing a concise notation for tensor operations, and unifying Julia's `reshape`, `permutedims`, `reduce` and `repeat` functions, with support for automatic differentiation.
 
 The Python implementation uses strings to specify the operation, which is tricky to compile in Julia, so a string macro is exported for parity, e.g. `einops"(a b) 1 c -> (c b) a"` expands to the form `((:a, :b), 1, :c,) --> ((:c, :b), :a)`, where `-->` is a custom operator that puts the left and right operands as type parameters of a special pattern type. This allows for compile-time awareness of dimensionalities, ensuring type stability.
 
@@ -85,7 +85,7 @@ julia> repeat(image, (:w, :h) --> ((:w, :w3), (:h, :h2)), w3=3, h2=2) |> size
 *   [x] Implement `reduce`.
 *   [x] Support automatic differentiation (tested with [Zygote.jl](https://github.com/FluxML/Zygote.jl)).
 *   [x] Implement `einsum` (or wrap existing implementation) (see https://github.com/MurrellGroup/Einops.jl/issues/3).
-*   [ ] Support ellipsis notation (using `..` from [EllipsisNotation.jl](https://github.com/SciML/EllipsisNotation.jl)) (see https://github.com/MurrellGroup/Einops.jl/issues/9).
+*   [x] Support ellipsis notation (using `..` from [EllipsisNotation.jl](https://github.com/SciML/EllipsisNotation.jl)) (see https://github.com/MurrellGroup/Einops.jl/issues/9).
 *   [ ] Explore integration with `PermutedDimsArray` or [TransmuteDims.jl](https://github.com/mcabbott/TransmuteDims.jl) for lazy and statically inferrable permutations (see https://github.com/MurrellGroup/Einops.jl/issues/4).
 
 ## Contributing
