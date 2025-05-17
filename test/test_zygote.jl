@@ -43,11 +43,11 @@ using Zygote
         @test gradient(f1, a, b) isa Tuple{AbstractArray{Float32,2}, AbstractArray{Float32,2}}
         
         # Test einsum with batched tensors
-        x = rand(Float32, 2, 3, 4)
-        y = rand(Float32, 2, 4, 5)
+        x = rand(Float32, 2, 3, 5)
+        y = rand(Float32, 3, 4, 5)
         function f2(x, y)
             # Batched matrix multiplication
-            result = einsum(x, y, ((:b, :i, :j), (:b, :j, :k)) --> (:b, :i, :k))
+            result = einsum(x, y, ((:i, :j, :b), (:j, :k, :b)) --> (:i, :k, :b))
             return sum(result)
         end
         @test gradient(f2, x, y) isa Tuple{AbstractArray{Float32,3}, AbstractArray{Float32,3}}

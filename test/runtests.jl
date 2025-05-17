@@ -29,6 +29,16 @@ using Test, Statistics, LinearAlgebra
         @test parse_shape(x, (:a, ..)) == (; a = 2)
         @test parse_shape(x, (:a, :b, ..)) == (; a = 2, b = 3)
         @test parse_shape(x, (:a, :b, :c, ..)) == (; a = 2, b = 3, c = 5)
+
+        if VERSION >= v"1.10"
+            h(x) = parse_shape(x, (:a, :b, :c)); # tuple-pattern must be const-propagated if not passed as a Val
+            @test (@inferred h(x)) == (; a = 2, b = 3, c = 5)
+        end
+
+        @test (@inferred parse_shape(x, Val((:a, :b, :c)))) == (; a = 2, b = 3, c = 5)
+        @test (@inferred parse_shape(x, Val((:a, :b, -)))) == (; a = 2, b = 3)
+        @test (@inferred parse_shape(x, Val((:a, :b, ..)))) == (; a = 2, b = 3)
+        @test_broken (@inferred parse_shape(x, (:a, :b, ..))) == (; a = 2, b = 3)
     end
 
     @testset "einops string tokenization" begin
@@ -78,6 +88,8 @@ using Test, Statistics, LinearAlgebra
         @test_throws "Invalid input dimension" rearrange(x, (:a, :b, (:c, 1)) --> (:a, :b, :c))
         @test rearrange(x, (:a, :b, ..) --> (:a, .., :b)) == rearrange(x, (:a, :b, :c) --> (:a, :c, :b))
         @test rearrange(x, (:a, :b, :c, ..) --> (:a, .., :b, :c)) == rearrange(x, (:a, :b, :c) --> (:a, :b, :c))
+        @test (@inferred rearrange(x, (:a, :b, ..) --> (:a, .., :b))) == rearrange(x, (:a, :b, :c) --> (:a, :c, :b))
+        @test (@inferred rearrange(x, ((:a, :a1), :b, ..) --> (:a, .., :b, :a1), a1=1)) == rearrange(x, (:a, :b, :c) --> (:a, :c, :b, 1))
 
         x = reshape(rand(1)) # size (), length 1
         @test rearrange(x, () --> ()) == x
@@ -85,6 +97,7 @@ using Test, Statistics, LinearAlgebra
 
         x = rand(2,3,5*7)
         @test rearrange(x, (:a, :b, (:c, :d)) --> (:a, :d, (:c, :b)), c=5) == reshape(permutedims(reshape(x, 2,3,5,7), (1,4,3,2)), 2,7,5*3)
+        @test (@inferred rearrange(x, (:a, :b, (:c, :d)) --> (:a, :d, (:c, :b)), c=5)) == reshape(permutedims(reshape(x, 2,3,5,7), (1,4,3,2)), 2,7,5*3)
 
         x = rand(2,3,5*7*11)
         @test rearrange(x, (:a, :b, (:c, :d, :e)) --> ((:a, :e), :d, (:c, :b)), c=5, d=7) == reshape(permutedims(reshape(x, 2,3,5,7,11), (1,5,4,3,2)), 2*11,7,5*3)
@@ -148,6 +161,7 @@ using Test, Statistics, LinearAlgebra
         @test reduce(sum, x, einops"a b ... -> ...") == reduce(sum, x, einops"a b c -> c")
         @test reduce(sum, x, einops"a b ... -> (a ...)") == reduce(sum, x, einops"a b c -> (a c)")
         @test reduce(sum, x, einops"a b ... -> (... b)") == reduce(sum, x, einops"a b c -> (c b)")
+        @test (@inferred reduce(sum, x, einops"(a 2) b ... -> a (... b)")) == reduce(sum, x, einops"2 b c -> 1 (c b)")
 
         @test reduce(sum, [x, x], einops"a b c r -> a b c") == dropdims(sum(stack([x, x]), dims=4), dims=4)
         @test reduce(sum, reshape([x, x], 1, 2), einops"a b c 1 r -> a b c") == dropdims(sum(stack([x, x]), dims=4), dims=4)
@@ -229,6 +243,7 @@ using Test, Statistics, LinearAlgebra
         @test repeat(x, (:a, :b) --> (:a, (:b, :r)), r=2) == reshape(repeat(x, 1,1,2), 2,6)
         @test repeat(x, (:a, :b) --> (:a, (:b, :r), 1), r=2) == reshape(repeat(x, 1,1,2), 2,6,1)
         @test repeat(x, (:a, :b) --> (:a, :b, 2)) == repeat(x, 1,1,2)
+        @test (@inferred repeat(x, (:a, :b) --> (:a, :b, 2))) == repeat(x, 1,1,2)
 
         @test repeat([x, x], einops"a b c -> a b c r", r=3) == repeat(x, 1,1,2,3)
         @test repeat(reshape([x, x], 1, 2), einops"a b 1 c -> a b c r", r=3) == repeat(x, 1,1,2,3)
@@ -242,6 +257,7 @@ using Test, Statistics, LinearAlgebra
 
         @test repeat(x, einops"a ... -> a (... r)", r=2) == repeat(x, einops"a b c -> a (b c r)", r=2)
         @test repeat(x, einops"a b ... -> a (b ... r)", r=2) == repeat(x, einops"a b c -> a (b c r)", r=2)
+        @test (@inferred repeat(x, einops"a b ... -> a (b ... r)", r=2)) == repeat(x, einops"a b c -> a (b c r)", r=2)
 
         x = rand(2,3,35)
         @test repeat(x, (:a, :b, (:c, :c2)) --> (:a, (:b, :c), :c2, :r), c2=7, r=2) == reshape(repeat(reshape(x, 2,3,5,7), 1,1,1,1,2), 2,3*5,7,2)
@@ -286,6 +302,7 @@ using Test, Statistics, LinearAlgebra
 
         x = rand(4,4)
         @test einsum(x, einops"i i ->")[] == tr(x)
+        @test_broken (@inferred einsum(x, einops"i i ->"))[] == tr(x)
 
         @testset "Python API reference parity" begin
             # see https://einops.rocks/api/einsum/
