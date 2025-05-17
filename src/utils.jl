@@ -21,7 +21,7 @@ function reshape_in(x, left; context...)
         end
         new_shape
     end
-    return reshape(x, ntuple(i -> new_shape[i], length(extract(Symbol, left))))
+    return reshape(x, ntuple(i -> new_shape[i]::Int, length(extract(Symbol, left))))
 end
 
 reshape_in(x, ::Tuple{Vararg{Symbol}}; context...) = x
