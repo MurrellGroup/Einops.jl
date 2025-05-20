@@ -26,7 +26,7 @@ The `rearrange` combines reshaping and permutation operations into a single, exp
 ```julia
 julia> images = randn(3, 40, 30, 32); # channel, width, height, batch
 
-# reorder axes to "b c h w" format:
+# reorder axes to "w h c b" format:
 julia> rearrange(images, (:c, :w, :h, :b) --> (:w, :h, :c, :b)) |> size
 (40, 30, 3, 32)
 
