@@ -1,7 +1,16 @@
 using Einops
 using Test
 
+using Pkg
+
+const EINOPS_TEST_ZYGOTE = get(ENV, "EINOPS_TEST_ZYGOTE", "false") == "true"
+EINOPS_TEST_ZYGOTE && Pkg.add("Zygote")
+
+const EINOPS_TEST_REACTANT = get(ENV, "EINOPS_TEST_REACTANT", "false") == "true"
+EINOPS_TEST_REACTANT && Pkg.add("Reactant")
+
 @testset "Einops.jl" begin
+
     include("patterns.jl")
     include("parse_shape.jl")
     include("rearrange.jl")
@@ -10,5 +19,8 @@ using Test
     include("einsum.jl")
     include("pack_unpack.jl")
     include("robustness.jl")
-    include("test_zygote.jl")
+
+    EINOPS_TEST_ZYGOTE && include("ext_zygote/runtests.jl")
+    EINOPS_TEST_REACTANT && include("ext_reactant/runtests.jl")
+
 end
