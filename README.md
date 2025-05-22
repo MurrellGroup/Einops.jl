@@ -15,7 +15,7 @@
 
 Einops.jl is a Julia implementation of [einops](https://einops.rocks), providing a concise notation for tensor operations, and unifying Julia's `reshape`, `permutedims`, `reduce` and `repeat` functions, with support for automatic differentiation.
 
-The Python implementation uses strings to specify the operation, which is tricky to compile in Julia, so a string macro is exported for parity, e.g. `einops"(a b) 1 c -> (c b) a"` expands to the form `((:a, :b), 1, :c,) --> ((:c, :b), :a)`, where `-->` is a custom operator that puts the left and right operands as type parameters of a special pattern type. This allows for compile-time awareness of dimensionalities, ensuring type stability.
+The Python implementation uses strings to specify the operation, which is tricky to compile in Julia, so a string macro is exported for parity, e.g. `einops"a b -> (b a)"` expands to the form `(:a, :b) --> ((:b, :a),)`, where `-->` is a custom operator that puts the left and right operands as type parameters of a special pattern type. This allows for compile-time awareness of dimensionalities, ensuring type stability.
 
 ## Operations
 
