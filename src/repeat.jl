@@ -37,19 +37,18 @@ function Base.repeat(x::AbstractArray, (left, right)::ArrowPattern; context...)
     context = merge(NamedTuple(context), extra_context)
     left, right = replace_ellipses(left --> right, Val(ndims(x)))
     left_names, right_names = extract(Symbol, left), extract(Symbol, right)
-    context_info, permutation, repeats::NTuple{length(right_names),Int} = @ignore_derivatives begin
+    context_info, repeats::NTuple{length(right_names),Int}, reduced_right_names = @ignore_derivatives begin
         repeat_dim_names = setdiff(right_names, left_names)
         context_repeat = NamedTuple(d => context[d] for d in repeat_dim_names)
         info_dim_names = setdiff(keys(context), repeat_dim_names)
         context_info = NamedTuple(d => context[d] for d in info_dim_names)
         isempty(setdiff(right_names, left_names, keys(context))) || throw(ArgumentError("Unknown dimension sizes: $(setdiff(right_names, left_names))"))
         right_names_no_repeat = setdiff(right_names, repeat_dim_names)
-        permutation = permutation_mapping(left_names, ntuple(i -> right_names_no_repeat[i], length(left_names)))
         repeats = ntuple(i -> get(context_repeat, right_names[i], 1), length(right_names))
-        context_info, permutation, repeats
+        context_info, repeats, ntuple(i -> right_names_no_repeat[i], length(left_names))
     end
     expanded = reshape_in(x, left; context_info...)
-    permuted = _permutedims(expanded, permutation)
+    permuted = permute(expanded, left_names, reduced_right_names)
     reshaped = reshape(permuted, prerepeat_shape(size(expanded), left_names, right_names))
     repeated = repeat(reshaped, repeats...)
     collapsed = reshape_out(repeated, right)

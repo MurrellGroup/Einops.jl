@@ -3,6 +3,7 @@ module Einops
 using ChainRulesCore
 using EllipsisNotation; export ..
 using TupleTools: flatten, insertat
+using TransmuteDims: TransmutedDimsArray, transmute
 
 include("utils.jl")
 

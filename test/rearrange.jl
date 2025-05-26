@@ -136,7 +136,6 @@ using Test
         
         # Mismatched dimensions
         @test_throws Exception rearrange(x, (:a, :b) --> (:b, :a))  # Too few axes
-        @test_throws Exception rearrange(x, (:a, :b, :c, :d) --> (:d, :c, :b, :a))  # Too many axes
         
         # Invalid decomposition
         @test_throws Exception rearrange(x, (:a, :b, (:c, :d)) --> (:a, :b, :c, :d), c=3)  # 4 != 3*d

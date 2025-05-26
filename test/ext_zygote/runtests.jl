@@ -1,3 +1,5 @@
+using Einops
+using Test
 using Zygote
 
 @testset "Zygote" begin

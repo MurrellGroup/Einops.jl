@@ -1,6 +1,10 @@
 using Einops
 using Test
 
+using LinearAlgebra
+using Statistics
+using SparseArrays
+
 using Pkg
 
 const EINOPS_TEST_ZYGOTE = get(ENV, "EINOPS_TEST_ZYGOTE", "false") == "true"

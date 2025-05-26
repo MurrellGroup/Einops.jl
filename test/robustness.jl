@@ -3,6 +3,7 @@ using Test
 using SparseArrays
 using LinearAlgebra
 using Statistics
+using TransmuteDims
 
 @testset "Robustness and Edge Cases" begin
     @testset "diverse numeric types" begin
@@ -31,10 +32,11 @@ using Statistics
         @test reduce(sum, x, (:a, :b, :c) --> (:b, :c)) |> eltype == Rational{Int}
         
         # BitArrays
-        x = rand(Bool, 2, 3, 4)
-        @test rearrange(x, (:a, :b, :c) --> (:c, :b, :a)) isa Array{Bool}  # rearrange returns Array, not BitArray
-        @test reduce(any, x, (:a, :b, :c) --> (:b, :c)) isa Array{Bool}
-        @test reduce(all, x, (:a, :b, :c) --> (:a,)) isa Array{Bool}
+        x = BitArray(rand(Bool, 2, 3, 4))
+        @test rearrange(x, (:a, :b, :c) --> (:c, (:b, :a))) isa Array{Bool}
+        @test rearrange(x, (:a, :b, :c) --> (:c, :b, :a)) isa TransmutedDimsArray
+        @test reduce(any, x, (:a, :b, :c) --> (:b, :c)) isa TransmutedDimsArray
+        @test reduce(all, x, (:a, :b, :c) --> (:a,)) isa TransmutedDimsArray
     end
 
     @testset "sparse arrays" begin
@@ -43,7 +45,8 @@ using Statistics
         
         # Basic operations may not preserve sparsity after reshape
         # rearrange returns a dense array when it involves reshape
-        @test rearrange(x3d, (:a, :b, :c) --> (:b, :a, :c)) isa Array
+        @test rearrange(x3d, (:a, :b, :c) --> (:b, (:a, :c))) isa Array
+        @test rearrange(x3d, (:a, :b, :c) --> (:b, :a, :c)) isa TransmutedDimsArray
         @test rearrange(x3d, (:a, :b, :c) --> (:c, :b, :a)) |> size == (1, 3, 3)
         
         # Reduce operations

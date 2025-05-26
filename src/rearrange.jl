@@ -34,6 +34,7 @@ function rearrange(x::AbstractArray, (left, right)::ArrowPattern; context...)
     left_names, right_names = extract(Symbol, left), extract(Symbol, right)
     reshaped_in = reshape_in(x, left; context...)
     permuted = permute(reshaped_in, left_names, right_names)
+    return permuted
     reshaped_out = reshape_out(permuted, right)
     return reshaped_out
 end

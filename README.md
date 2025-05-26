@@ -31,7 +31,7 @@ julia> rearrange(images, (:c, :w, :h, :b) --> (:w, :h, :c, :b)) |> size
 (40, 30, 3, 32)
 
 # flatten each image into a vector
-julia> rearrange(images, (c, :w, :h, :b) --> ((:c, :w, :h), :b)) |> size
+julia> rearrange(images, (:c, :w, :h, :b) --> ((:c, :w, :h), :b)) |> size
 (32, 3600)
 
 # split each image into 4 smaller (top-left, top-right, bottom-left, bottom-right), 128 = 32 * 2 * 2

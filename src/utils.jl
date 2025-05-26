@@ -39,7 +39,8 @@ function permute(x, left, right)
     allunique(left_names) || throw(ArgumentError("Left names $(left_names) are not unique"))
     allunique(right_names) || throw(ArgumentError("Right names $(right_names) are not unique"))
     perm = permutation_mapping(left_names, right_names)
-    return _permutedims(x, perm)
+    return right_names
+    return transmute(x, perm)
 end
 
 
@@ -57,7 +58,5 @@ end
 
 reshape_out(x, ::Tuple{Vararg{Symbol}}) = x
 
-
-# fix for 1.10:
-_permutedims(x::AbstractArray{T,0}, ::Tuple{}) where T = x
-_permutedims(x, perm) = permutedims(x, perm)
+reshape_out(x::TransmutedDimsArray, right) = @invoke reshape_out(collect(x), right)
+reshape_out(x::TransmutedDimsArray, ::Tuple{Vararg{Symbol}}) = x
