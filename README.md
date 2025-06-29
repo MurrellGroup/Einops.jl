@@ -1,5 +1,9 @@
 <p align="center">
-  <img src="./docs/src/assets/logo-dark.png" width="256" />
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="./docs/src/assets/logo-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="./docs/src/assets/logo.png">
+    <img src="./docs/src/assets/logo.png" width="256" alt="Logo" />
+  </picture>
 </p>
 
 <h1 align="center">Einops.jl</h1>
