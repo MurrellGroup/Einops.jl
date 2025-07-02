@@ -43,15 +43,17 @@ function parse_shape(x::AbstractArray{<:Any,N}, pattern::ParseShapePattern{N}) w
     names = extract(Symbol, pattern)
     allunique(names) || error("Pattern $(pattern) has duplicate elements")
     inds = findtype(Symbol, pattern)
-    return NamedTuple{names,NTuple{length(inds),Int}}(size(x, i) for i in inds)
+    shape_info = @ignore_derivatives NamedTuple{names,NTuple{length(inds),Int}}(size(x, i) for i in inds)
+    return shape_info
 end
 
 function parse_shape(x::AbstractArray, ::Val{pattern_ellipsis}) where pattern_ellipsis
-    pattern = replace_ellipses_parse_shape(Val(pattern_ellipsis), x)
+    pattern = @ignore_derivatives replace_ellipses_parse_shape(Val(pattern_ellipsis), x)
     names = extract(Symbol, pattern)
     allunique(names) || error("Pattern $(pattern) has duplicate elements")
     inds = findtype(Symbol, pattern)
-    return NamedTuple{names,NTuple{length(inds),Int}}(size(x, i) for i in inds)
+    shape_info = @ignore_derivatives NamedTuple{names,NTuple{length(inds),Int}}(size(x, i) for i in inds)
+    return shape_info
 end
 
 parse_shape(x::AbstractArray, pattern::ParseShapePatternEllipsis) = parse_shape(x, Val(pattern))

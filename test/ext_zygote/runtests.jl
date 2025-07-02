@@ -14,7 +14,7 @@ using Zygote
     @testset "reduce" begin
         x = rand(Float32, 2, 3, 35)
         function f(op, x)
-            rearranged = reduce(op, x, (:b, :h, (:w, :c)) --> (:b, (:h, :w)), w=5)
+            rearranged = reduce(op, x, (:b, .., (:w, :c)) --> (:b, (.., :w)), w=5)
             return sum(rearranged)
         end
         @testset for op in [sum, prod, maximum, minimum, mean]
