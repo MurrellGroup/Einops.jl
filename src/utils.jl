@@ -60,4 +60,8 @@ reshape_out(x, ::Tuple{Vararg{Symbol}}) = x
 
 # fix for 1.10:
 _permutedims(x::AbstractArray{T,0}, ::Tuple{}) where T = x
-_permutedims(x, perm) = permutedims(x, perm)
+
+function _permutedims(x, perm::NTuple{N,Int}) where N
+    perm === ntuple(identity, N) && return x
+    permutedims(x, perm)
+end
