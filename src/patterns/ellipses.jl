@@ -4,12 +4,13 @@ function ellipsis_replacement(side, N)
 end
 
 @generated function replace_ellipses(::ArrowPattern{left,right}, ::Val{N}) where {left,right,N}
-    pattern = left --> right
-    if (..) ∉ flatten(left)
-        (..) in flatten(right) && throw("Ellipsis found on right side but not on left side: $pattern")
-        return :($pattern)
-    end
-    count(==(..), flatten(left)) == 1 || throw("Only one ellipsis is allowed: $pattern")
+    if (..) ∈ flatten(left)
+        (..) ∉ left && throw("Ellipsis is not allowed to be nested on left side.")
+    else
+        (..) ∈ flatten(right) && throw("Ellipsis found on right side but not on left side: $(left --> right)")
+        return :($(left --> right))
+    end 
+    count(==(..), flatten(left)) == 1 || throw("Only one ellipsis is allowed on left side: $(left --> right)")
     replacement = ellipsis_replacement(left, N)
     new_left = insertat(left, only(findfirst(==(..), left)), replacement)
     new_right = if (..) in flatten(right)
