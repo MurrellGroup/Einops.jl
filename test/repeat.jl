@@ -1,5 +1,5 @@
 using Einops
-using Test
+using Test, Statistics
 
 @testset "Repeat Operations" begin
     @testset "basic repetitions" begin
@@ -90,5 +90,15 @@ using Test
         # Non-numeric arrays - these should work!
         x = ["a" "b"; "c" "d"]
         @test repeat(x, (:a, :b) --> (:a, :b, :c), c=2) == cat(x, x, dims=3)
+    end
+
+    @testset "no-op allocation optimization" begin
+        x = rand(2, 3, 4)
+
+        y = repeat(x, (:a, :b, :c) --> (:a, :b, :c, 1))
+        @test pointer(x) == pointer(y)
+
+        y = repeat(x, (:a, :b, :c) --> ((:a, :b), :c, 1))
+        @test pointer(x) == pointer(y)
     end
 end

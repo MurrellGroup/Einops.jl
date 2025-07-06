@@ -44,7 +44,7 @@ function Base.reduce(f::Function, x::AbstractArray, (left, right)::ArrowPattern;
     allunique(extract(Symbol, right)) || throw(ArgumentError("Right names $(right) are not unique"))
     left_names, right_names = extract(Symbol, left), extract(Symbol, right)
     expanded = reshape_in(x, left; context...)
-    reduced_dims::NTuple{length(left_names)-length(right_names),Int}, permutation = @ignore_derivatives begin
+    dims::NTuple{length(left_names)-length(right_names),Int}, permutation = @ignore_derivatives begin
         isempty(setdiff(right_names, left_names)) || throw(ArgumentError("All dimension names on right side of pattern must be present on left side: $(setdiff(right_names, left_names))"))
         reduced_dim_names = setdiff(left_names, right_names)
         reduced_dims = ntuple(i -> findfirst(isequal(reduced_dim_names[i]), left_names)::Int, length(left_names) - length(right_names))
@@ -52,8 +52,8 @@ function Base.reduce(f::Function, x::AbstractArray, (left, right)::ArrowPattern;
         permutation = permutation_mapping(ntuple(i -> reduced_left_names[i], length(right_names)), right_names)
         reduced_dims, permutation
     end
-    reduced = f(expanded, dims=reduced_dims)
-    dropped = dropdims(reduced, dims=reduced_dims)
+    reduced = isempty(dims) ? expanded : f(expanded; dims)
+    dropped = dropdims(reduced; dims)
     permuted = _permutedims(dropped, permutation)
     collapsed = reshape_out(permuted, right)
     return collapsed

@@ -51,7 +51,7 @@ function Base.repeat(x::AbstractArray, (left, right)::ArrowPattern; context...)
     expanded = reshape_in(x, left; context_info...)
     permuted = _permutedims(expanded, permutation)
     reshaped = reshape(permuted, prerepeat_shape(size(expanded), left_names, right_names))
-    repeated = repeat(reshaped, repeats...)
+    repeated = all(isone, repeats) ? reshaped : repeat(reshaped, repeats...)
     collapsed = reshape_out(repeated, right)
     return collapsed
 end

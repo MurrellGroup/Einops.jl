@@ -139,4 +139,14 @@ using Test, Statistics
         # Can't drop dimensions in rearrange - use reduce instead
         @test reduce(sum, x, (:a, :b, :c, :d, :e) --> (:b, :d)) |> size == (100, 50)
     end
+
+    @testset "no-op allocation optimization" begin
+        x = rand(2, 3, 4)
+        
+        y = reduce(sum, x, (:a, :b, :c) --> (:a, :b, :c))
+        @test pointer(x) == pointer(y)
+
+        y = reduce(sum, x, (:a, :b, :c) --> ((:a, :b), :c))
+        @test pointer(x) == pointer(y)
+    end
 end
