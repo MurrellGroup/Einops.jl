@@ -11,7 +11,7 @@ but not drop them.
 !!! note
     This method is not meant for binary reduction operations like `+`, `*`, `min`, `max`, `|`, `&`, etc.,
     as would be expected from `Base.reduce`. Also note that Python's
-    `min` and `max` are available in Julia as `minimum` and `maximum` respectively.
+    `min` and `max` equivalents are available in Julia as `minimum` and `maximum` respectively.
 
 # Examples
 
