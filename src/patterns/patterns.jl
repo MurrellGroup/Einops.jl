@@ -26,6 +26,8 @@ Base.iterate(::ArrowPattern{L,R}) where {L,R} = (L, Val(:L))
 Base.iterate(::ArrowPattern{L,R}, ::Val{:L}) where {L,R} = (R, Val(:R))
 Base.iterate(::ArrowPattern{L,R}, ::Val{:R}) where {L,R} = nothing
 
+# `q, k = rearrange.((q, k), ((:d, :h) ..) --> (:d, :h, ..))`
+Base.broadcastable(p::ArrowPattern) = Ref(p)
 
 """
     -->
