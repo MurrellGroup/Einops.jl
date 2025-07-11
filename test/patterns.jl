@@ -23,6 +23,11 @@ using Test
             end
         end
 
+        @testset "ArrowPattern broadcast" begin
+            pattern = (:a, :b, :c) --> (:c, :b, :a)
+            @test identity.(pattern) == pattern
+        end
+
         @testset "ArrowPattern validation" begin
             @test_throws "Invalid pattern" (:a, 'b') --> ('b', :a)
         end
