@@ -21,7 +21,7 @@ and `-` to ignore dimensions, and `...` to ignore any number of dimensions.
 
 !!! note
     For proper type inference, the pattern needs to be passed as `Val(pattern)`
-    when an ellipsis is present.
+    when an ellipsis is present. This is done automatically when using [`@einops_str`](@ref).
 
 # Examples
 
@@ -32,7 +32,7 @@ julia> parse_shape(rand(2,3,4), (:a, :b, -))
 julia> parse_shape(rand(2,3), (-, -))
 NamedTuple()
 
-julia> parse_shape(rand(2,3,4,5), (:first, :second, :third, :fourth))
+julia> parse_shape(rand(2,3,4,5), einops"first second third fourth")
 (first = 2, second = 3, third = 4, fourth = 5)
 
 julia> parse_shape(rand(2,3,4), Val((:a, :b, ..)))

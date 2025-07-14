@@ -35,8 +35,8 @@ using Test
 
     @testset "String Pattern Parsing" begin
         @testset "basic patterns" begin
-            @test einops"a _ c" == (:a, -, :c)
-            @test einops"_ _ _" == (-, -, -)
+            @test einops"a _ c" == Val((:a, -, :c))
+            @test einops"_ _ _" == Val((-, -, -))
         end
 
         @testset "arrow patterns" begin
@@ -60,11 +60,11 @@ using Test
         end
 
         @testset "pack/unpack patterns" begin
-            @test einops"i j * k" == (:i, :j, *, :k)
-            @test einops" i  j  *  k " == (:i, :j, *, :k)
-            @test einops"* i" == (*, :i)
-            @test einops"i *" == (:i, *)
-            @test einops"i i" == (:i, :i)
+            @test einops"i j * k" == Val((:i, :j, *, :k))
+            @test einops" i  j  *  k " == Val((:i, :j, *, :k))
+            @test einops"* i" == Val((*, :i))
+            @test einops"i *" == Val((:i, *))
+            @test einops"i i" == Val((:i, :i))
         end
 
         @testset "parsing errors" begin

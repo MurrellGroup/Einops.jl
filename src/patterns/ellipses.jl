@@ -3,7 +3,7 @@ function ellipsis_replacement(side, N)
     return anonymous_symbols(:__ellipsis, N - length(side) + 1)
 end
 
-@generated function replace_ellipses(::ArrowPattern{left,right}, ::Val{N}) where {left,right,N}
+function replace_ellipses(left, right, N)
     if (..) ∈ flatten(left)
         (..) ∉ left && throw("Ellipsis is not allowed to be nested on left side.")
     else
@@ -26,7 +26,7 @@ end
     else
         right
     end
-    :($(new_left --> new_right))
+    new_left, new_right
 end
 
 @generated function replace_ellipses_einsum(::ArrowPattern{left,right}, ::Val{Ns}) where {left,right,Ns}

@@ -1,8 +1,14 @@
-_get(x, i::Int) = x[i]
-_get(x, ::Nothing) = 1
-function prerepeat_shape(input_shape::Dims, left::Tuple{Vararg{Symbol}}, right::NTuple{N,Symbol}) where N
-    output_shape = map(key -> _get(input_shape, findfirst(isequal(key), left)), right)
-    return ntuple(i -> output_shape[i], length(right))
+function reshape_pre_repeat(N, positions)
+    new_shape = Expr(:tuple, [:(size(x, $i)) for i in 1:N]...)
+    sizes = new_shape.args
+    for i in sort(collect(positions))
+        if i > length(sizes)
+            append!(sizes, ones(Int, i - length(sizes)))
+        else
+            insert!(sizes, i, 1)
+        end
+    end
+    return new_shape
 end
 
 """
@@ -32,28 +38,30 @@ julia> z == reshape(repeat(x, 1,1,2), 2,6)
 true
 ```
 """
-function Base.repeat(x::AbstractArray, (left, right)::ArrowPattern; context...)
+@generated function Base.repeat(x::AbstractArray{<:Any,N}, ::ArrowPattern{L,R}; context...) where {N,L,R}
+    left, right = replace_ellipses(L, R, N)
     right, extra_context = remove_anonymous_dims(right)
-    context = merge(NamedTuple(context), extra_context)
-    left, right = replace_ellipses(left --> right, Val(ndims(x)))
     left_names, right_names = extract(Symbol, left), extract(Symbol, right)
-    context_info, permutation, repeats::NTuple{length(right_names),Int} = @ignore_derivatives begin
-        repeat_dim_names = setdiff(right_names, left_names)
-        context_repeat = NamedTuple(d => context[d] for d in repeat_dim_names)
-        info_dim_names = setdiff(keys(context), repeat_dim_names)
-        context_info = NamedTuple(d => context[d] for d in info_dim_names)
-        isempty(setdiff(right_names, left_names, keys(context))) || throw(ArgumentError("Unknown dimension sizes: $(setdiff(right_names, left_names))"))
-        right_names_no_repeat = setdiff(right_names, repeat_dim_names)
-        permutation = permutation_mapping(left_names, ntuple(i -> right_names_no_repeat[i], length(left_names)))
-        repeats = ntuple(i -> get(context_repeat, right_names[i], 1), length(right_names))
-        context_info, permutation, repeats
+    repeat_names = setdiff(right_names, left_names)
+    right_names_no_repeat = setdiff(right_names, repeat_names)
+    permutation = get_permutation(left_names, right_names_no_repeat)
+    positions = get_mapping(right_names, repeat_names)
+    repeats = [:(context[$(QuoteNode(name))]) for name in repeat_names]
+    repeat_dims = [i in positions ? repeats[findfirst(==(i), positions)] : 1 for i in 1:maximum(positions; init=0)]
+    context_expr = !isempty(extra_context) && :(context = pairs(merge(NamedTuple(context), $extra_context)))
+    permute_expr = permutation !== ntuple(identity, length(permutation)) && :(x = _permutedims(x, $permutation))
+    repeat_expr = !all(==(1), repeat_dims) && :(
+        x = reshape(x, $(reshape_pre_repeat(length(left_names), positions)));
+        x = repeat(x, $(repeat_dims...))
+    )
+    quote
+        $context_expr
+        x = reshape(x, $(reshape_in(N, left, pairs_type_to_names(context)))) # extra context not needed
+        $permute_expr
+        $repeat_expr
+        x = reshape(x, $(reshape_out(right)))
+        return x
     end
-    expanded = reshape_in(x, left; context_info...)
-    permuted = _permutedims(expanded, permutation)
-    reshaped = reshape(permuted, prerepeat_shape(size(expanded), left_names, right_names))
-    repeated = all(isone, repeats) ? reshaped : repeat(reshaped, repeats...)
-    collapsed = reshape_out(repeated, right)
-    return collapsed
 end
 
 Base.repeat(x::AbstractArray{<:AbstractArray}, pattern::ArrowPattern; context...) = repeat(stack(x), pattern; context...)
