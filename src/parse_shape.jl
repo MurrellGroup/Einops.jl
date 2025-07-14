@@ -32,7 +32,7 @@ julia> parse_shape(rand(2,3,4), (:a, :b, -))
 julia> parse_shape(rand(2,3), (-, -))
 NamedTuple()
 
-julia> parse_shape(rand(2,3,4,5), (:first, :second, :third, :fourth))
+julia> parse_shape(rand(2,3,4,5), einops"first second third fourth")
 (first = 2, second = 3, third = 4, fourth = 5)
 
 julia> parse_shape(rand(2,3,4), Val((:a, :b, ..)))

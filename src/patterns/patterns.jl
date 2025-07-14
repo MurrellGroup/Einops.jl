@@ -83,10 +83,10 @@ julia> einops"i j, j k -> i k" # for einsum
 ((:i, :j), (:j, :k)) --> (:i, :k)
 
 julia> einops"a b _ d" # for parse_shape
-(:a, :b, -, :d)
+Val{(:a, :b, -, :d)}()
 
 julia> einops"i j * k" # for pack/unpack
-(:i, :j, *, :k)
+Val{(:i, :j, *, :k)}()
 ```
 """
 macro einops_str(pattern)

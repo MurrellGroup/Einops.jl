@@ -39,7 +39,6 @@ true
 ```
 """
 @generated function Base.repeat(x::AbstractArray{<:Any,N}, ::ArrowPattern{L,R}; context...) where {N,L,R}
-    @nospecialize x
     left, right = replace_ellipses(L, R, N)
     right, extra_context = remove_anonymous_dims(right)
     left_names, right_names = extract(Symbol, left), extract(Symbol, right)
@@ -51,10 +50,10 @@ true
     repeat_dims = [i in positions ? repeats[findfirst(==(i), positions)] : 1 for i in 1:maximum(positions; init=0)]
     context_expr = !isempty(extra_context) && :(context = pairs(merge(NamedTuple(context), $extra_context)))
     permute_expr = permutation !== ntuple(identity, length(permutation)) && :(x = _permutedims(x, $permutation))
-    repeat_expr = !all(==(1), repeat_dims) && quote
-        x = reshape(x, $(reshape_pre_repeat(length(left_names), positions)))
+    repeat_expr = !all(==(1), repeat_dims) && :(
+        x = reshape(x, $(reshape_pre_repeat(length(left_names), positions)));
         x = repeat(x, $(repeat_dims...))
-    end
+    )
     quote
         $context_expr
         x = reshape(x, $(reshape_in(N, left, pairs_type_to_names(context)))) # extra context not needed
