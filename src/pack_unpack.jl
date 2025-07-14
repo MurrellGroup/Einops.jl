@@ -44,6 +44,8 @@ function pack(unpacked_arrays, pattern::PackPattern{N}) where N
     return concatenated_array, packed_shapes
 end
 
+pack(unpacked_arrays, ::Val{T}) where T = pack(unpacked_arrays, T)
+
 splice(a::Dims, i::Int, r::Dims) = (a[1:i-1]..., r..., a[i+1:end]...)
 
 """
@@ -79,3 +81,5 @@ function unpack(packed_array::AbstractArray{<:Any,N}, packed_shapes, pattern::Pa
     end
     return unpacked_arrays
 end
+
+unpack(packed_array, packed_shapes, ::Val{T}) where T = unpack(packed_array, packed_shapes, T)

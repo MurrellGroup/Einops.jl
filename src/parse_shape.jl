@@ -21,7 +21,7 @@ and `-` to ignore dimensions, and `...` to ignore any number of dimensions.
 
 !!! note
     For proper type inference, the pattern needs to be passed as `Val(pattern)`
-    when an ellipsis is present.
+    when an ellipsis is present. This is done automatically when using [`@einops_str`](@ref).
 
 # Examples
 

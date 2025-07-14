@@ -17,80 +17,88 @@
 
 </div>
 
-> Einops.jl brings the readable and concise tensor operations of [einops](https://einops.rocks) to Julia, unifying `reshape`, `permutedims`, `reduce` and `repeat` functions, with support for automatic differentiation.
+> Einops.jl brings the readable and concise tensor operations of [einops](https://einops.rocks) to Julia, reliably expanding to existing primitives like `reshape`, `permutedims`, and `repeat`, with no performance overhead.
 
-## Operations
+## Einops vs Julia primitives
 
-The Python implementation uses strings to specify the exact operation, which is tricky to compile in Julia, so a string macro is exported for parity, e.g. `einops"a b -> (b a)"` expands to the form `(:a, :b) --> ((:b, :a),)`, where `-->` is a custom operator that puts the left and right operands as type parameters of a special pattern type. This allows for compile-time awareness of dimensionalities, ensuring type stability.
+Einops patterns can be constructed with the `einops` string macro, e.g. `einops"a b -> (b a)"` expands to the form `(:a, :b) --> ((:b, :a),)`, where `-->` is a custom operator that puts the left and right operands as type parameters of a special pattern type.
 
-### `rearrange`
+The snippets below show identical transformations expressed first with Einops (one readable line) and then with "hand-rolled" Julia primitives. Notice how Einops collapses multiple e.g. `reshape` / `permutedims` / `dropdims` / `repeat` calls into a single, declarative statement. Note that Einops simply expands to these primitives under the hood, and avoids no-ops, so there is little to no performance overhead.
 
-The `rearrange` combines reshaping and permutation operations into a single, expressive command.
+<table style="table-layout: fixed; width: 100%;">
 
-```julia
-julia> images = randn(3, 40, 30, 32); # channel, width, height, batch
 
-# reorder axes to "w h c b" format:
-julia> rearrange(images, (:c, :w, :h, :b) --> (:w, :h, :c, :b)) |> size
-(40, 30, 3, 32)
+  <tr>
+    <th>Einops</th>
+    <th>Julia Base primitives</th>
+  </tr>
 
-# flatten each image into a vector
-julia> rearrange(images, (:c, :w, :h, :b) --> ((:c, :w, :h), :b)) |> size
-(32, 3600)
 
-# split each image into 4 smaller (top-left, top-right, bottom-left, bottom-right), 128 = 32 * 2 * 2
-julia> rearrange(images, (:c, (:w, :w2), (:h, :h2), :b) --> (:c, :w, :h, (:w2, :h2, :b)), h2=2, w2=2) |> size
-(3, 20, 15, 128)
-```
+  <tr>
+  <td>
 
-### `reduce`
+  ```julia
+  rearrange(x, einops"a b c -> (a b) c")
+  ```
+  </td>
+  <td>
 
-The method for `Base.reduce` dispatches on `ArrowPattern`, applying reduction operations (like `sum`, `mean`, `maximum`) along specified axes. This is different from typical `Base.reduce` functionality, which reduces using binary operations.
+  ```julia
+  reshape(x, :, size(x, 3))
+  ```
+  </td>
+  </tr>
 
-```julia
-julia> x = randn(64, 32, 100);
 
-# perform max-reduction on the first axis
-# Axis t does not appear on the right - thus we reduce over t
-julia> reduce(maximum, x, (:c, :b, :t) --> (:c, :b)) |> size
-(64, 32)
+  <tr>
+  <td>
 
-julia> reduce(mean, x, (:c, :b, (:t, :t5)) --> (:b, :c, :t), t5=5) |> size
-(32, 64, 20)
-```
+  ```julia
+  rearrange(x, einops"a b c -> (b a) c")
+  ```
+  </td>
+  <td>
 
-### `repeat`
+  ```julia
+  reshape(permutedims(x, (2, 1, 3)), :, size(a, 3))
+  ```
+  </td>
+  </tr>
 
-The method for `Base.repeat` also dispatches on `ArrowPattern`, and repeats elements along existing or new axes.
 
-```julia
-julia> image = randn(40, 30); # a grayscale image (of shape height x width)
+  <tr>
+  <td>
 
-# change it to RGB format by repeating in each channel
-julia> repeat(image, (:w, :h) --> (:c, :w, :h), c=3) |> size
-(3, 40, 30)
+  ```julia
+  rearrange(q, einops"(d h) l b -> d l (h b)"; d=head_dim)
+  ```
+  </td>
+  <td>
 
-# repeat image 2 times along height (vertical axis)
-julia> repeat(image, (:w, :h) --> ((:repeat, :h), :w), repeat=2) |> size
-(60, 40)
+  ```julia
+  reshape(permutedims(reshape(q, head_dim, size(q, 1) ÷ head_dim, size(q)[2:3]), (2, 1, 3, 4)), head_dim, size(q, 2), :)
+  ```
+  </td>
+  </tr>
 
-# repeat image 2 time along height and 3 times along width
-julia> repeat(image, (:w, :h) --> ((:w, :w3), (:h, :h2)), w3=3, h2=2) |> size
-(120, 60)
-```
 
-## Roadmap
+  <tr>
+  <td>
 
-*   [x] Implement `rearrange`.
-*   [x] Support Python implementation's string syntax for patterns with string macro.
-*   [x] Implement `pack` and `unpack`.
-*   [x] Implement `parse_shape`.
-*   [x] Implement `repeat`.
-*   [x] Implement `reduce`.
-*   [x] Support automatic differentiation (tested with [Zygote.jl](https://github.com/FluxML/Zygote.jl)).
-*   [x] Implement `einsum` (or wrap existing implementation) (see https://github.com/MurrellGroup/Einops.jl/issues/3).
-*   [x] Support ellipsis notation (using `..` from [EllipsisNotation.jl](https://github.com/SciML/EllipsisNotation.jl)) (see https://github.com/MurrellGroup/Einops.jl/issues/9).
-*   [ ] Explore integration with `PermutedDimsArray` or [TransmuteDims.jl](https://github.com/mcabbott/TransmuteDims.jl) for lazy and statically inferrable permutations (see https://github.com/MurrellGroup/Einops.jl/issues/4).
+  ```julia
+  repeat(k, einops"(d h) l b -> d l (r h b)"; d=head_dim, r=repeats)
+  ```
+  </td>
+  <td>
+
+  ```julia
+  reshape(repeat(permutedims(reshape(k, head_dim, size(k, 1) ÷ head_dim, size(k)[2:3]), (2, 1, 3, 4)), inner=(1, 1, repeats)), head_dim, size(k, 2), :)
+  ```
+  </td>
+  </tr>
+
+
+</table>
 
 ## Contributing
 

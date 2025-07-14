@@ -28,14 +28,16 @@ julia> z == reshape(permutedims(x, (1,3,2)), 2,5*3)
 true
 ```
 """
-function rearrange(x::AbstractArray, (left, right)::ArrowPattern; context...)
-    left, right = replace_ellipses(left --> right, Val(ndims(x)))
-    (!isempty(extract(typeof(..), left)) || !isempty(extract(typeof(..), right))) && throw(ArgumentError("Ellipses (..) are currently not supported"))
-    left_names, right_names = extract(Symbol, left), extract(Symbol, right)
-    reshaped_in = reshape_in(x, left; context...)
-    permuted = permute(reshaped_in, left_names, right_names)
-    reshaped_out = reshape_out(permuted, right)
-    return reshaped_out
+@generated function rearrange(x::AbstractArray{<:Any,N}, ::ArrowPattern{L,R}; context...) where {N,L,R}
+    left, right = replace_ellipses(L, R, N)
+    permutation = get_permutation(extract(Symbol, left), extract(Symbol, right))
+    permute_expr = permutation !== ntuple(identity, length(permutation)) && :(x = _permutedims(x, $permutation))
+    quote
+        x = reshape(x, $(reshape_in(N, left, pairs_type_to_names(context))))
+        $permute_expr
+        x = reshape(x, $(reshape_out(right)))
+        return x
+    end
 end
 
 rearrange(x::AbstractArray{<:AbstractArray}, pattern::ArrowPattern; context...) = rearrange(stack(x), pattern; context...)

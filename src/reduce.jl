@@ -37,26 +37,24 @@ julia> z == reshape(permutedims(dropdims(mean(reshape(x, 64,32,5,7), dims=4), di
 true
 ```
 """
-function Base.reduce(f::Function, x::AbstractArray, (left, right)::ArrowPattern; context...)
+@generated function Base.reduce(f::Function, x::AbstractArray{<:Any,N}, ::ArrowPattern{L,R}; context...) where {N,L,R}
+    left, right = replace_ellipses(L, R, N)
     left, extra_context = remove_anonymous_dims(left)
-    context = merge(NamedTuple(context), extra_context)
-    left, right = replace_ellipses(left --> right, Val(ndims(x)))
-    allunique(extract(Symbol, right)) || throw(ArgumentError("Right names $(right) are not unique"))
     left_names, right_names = extract(Symbol, left), extract(Symbol, right)
-    expanded = reshape_in(x, left; context...)
-    dims::NTuple{length(left_names)-length(right_names),Int}, permutation = @ignore_derivatives begin
-        isempty(setdiff(right_names, left_names)) || throw(ArgumentError("All dimension names on right side of pattern must be present on left side: $(setdiff(right_names, left_names))"))
-        reduced_dim_names = setdiff(left_names, right_names)
-        reduced_dims = ntuple(i -> findfirst(isequal(reduced_dim_names[i]), left_names)::Int, length(left_names) - length(right_names))
-        reduced_left_names = intersect(left_names, right_names)
-        permutation = permutation_mapping(ntuple(i -> reduced_left_names[i], length(right_names)), right_names)
-        reduced_dims, permutation
+    isempty(setdiff(right_names, left_names)) || throw(ArgumentError("All dimension names on right side of pattern must be present on left side: $(setdiff(right_names, left_names))"))
+    dims = get_mapping(left_names, setdiff(left_names, right_names))
+    permutation = get_permutation(intersect(left_names, right_names), right_names)
+    context_expr = !isempty(extra_context) && :(context = pairs(merge(NamedTuple(context), $extra_context)))
+    reduce_expr = !isempty(dims) && :(x = dropdims(f(x; dims=$dims); dims=$dims))
+    permute_expr = permutation !== ntuple(identity, length(permutation)) && :(x = _permutedims(x, $permutation))
+    quote
+        $context_expr
+        x = reshape(x, $(reshape_in(N, left, (pairs_type_to_names(context)..., keys(extra_context)...))))
+        $reduce_expr
+        $permute_expr
+        x = reshape(x, $(reshape_out(right)))
+        return x
     end
-    reduced = isempty(dims) ? expanded : f(expanded; dims)
-    dropped = dropdims(reduced; dims)
-    permuted = _permutedims(dropped, permutation)
-    collapsed = reshape_out(permuted, right)
-    return collapsed
 end
 
 Base.reduce(f::Function, x::AbstractArray{<:AbstractArray}, pattern::ArrowPattern; context...) = reduce(f, stack(x), pattern; context...)

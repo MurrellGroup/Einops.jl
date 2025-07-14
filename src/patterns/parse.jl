@@ -64,4 +64,4 @@ end
 const SpecialToken = Dict(:* => (*), :_ => (-), :... => (..))
 get_special_token(symbol) = get(SpecialToken, symbol, symbol)
 mapfilter(f, pred, xs) = map(f, filter(pred, xs))
-tokenize_generic(pattern) = Tuple(mapfilter(get_special_token ∘ Symbol, !isempty, split(pattern, ' ')))
+tokenize_generic(pattern) = Val(Tuple(mapfilter(get_special_token ∘ Symbol, !isempty, split(pattern, ' '))))
