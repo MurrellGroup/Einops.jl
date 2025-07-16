@@ -38,6 +38,12 @@ permutedims(x, (2, 1, 3))
 ```
 
 ```julia
+rearrange(x, einops"a b -> (b a)")
+# vs
+vec(permutedims(x))
+```
+
+```julia
 rearrange(x, einops"1 ... -> ...")
 # vs
 dropdims(x, dims=1)
