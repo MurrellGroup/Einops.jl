@@ -12,7 +12,7 @@ using Test
 
     @testset "ellipses parsing" begin
         x = rand(2, 3, 5)
-        @test_logs (:warn, "not type stable") parse_shape(x, (:a, ..)) == (; a = 2)
+        @test_warn "not type stable" parse_shape(x, (:a, ..)) == (; a = 2)
         @test parse_shape(x, Val((:a, ..))) == (; a = 2)
         @test parse_shape(x, Val((:a, :b, ..))) == (; a = 2, b = 3)
         @test parse_shape(x, Val((:a, :b, :c, ..))) == (; a = 2, b = 3, c = 5)
