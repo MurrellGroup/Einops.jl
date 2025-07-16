@@ -51,10 +51,10 @@ true
     repeat_dims = [i in positions ? repeats[findfirst(==(i), positions)] : 1 for i in 1:maximum(positions; init=0)]
     shape_out = get_shape_out(right)
     quote
-        $(context_expr = !isempty(extra_context) && :(context = pairs(merge(NamedTuple(context), $extra_context))))
+        $(isempty(extra_context) || :(context = pairs(merge(NamedTuple(context), $extra_context))))
         $(isnothing(shape_in) || :(x = reshape(x, $shape_in)))
-        $(permutation !== ntuple(identity, length(permutation)) && :(x = permutedims(x, $permutation)))
-        $(!all(==(1), repeat_dims) && :(
+        $(permutation === ntuple(identity, length(permutation)) || :(x = permutedims(x, $permutation)))
+        $(all(==(1), repeat_dims) || :(
             x = reshape(x, $(reshape_pre_repeat(length(left_names), positions)));
             x = repeat(x, $(repeat_dims...))
         ))

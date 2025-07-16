@@ -47,10 +47,10 @@ true
     permutation = get_permutation(intersect(left_names, right_names), right_names)
     shape_out = get_shape_out(right)
     quote
-        $(!isempty(extra_context) && :(context = pairs(merge(NamedTuple(context), $extra_context))))
+        $(isempty(extra_context) || :(context = pairs(merge(NamedTuple(context), $extra_context))))
         $(isnothing(shape_in) || :(x = reshape(x, $shape_in)))
-        $(!isempty(dims) && :(x = dropdims(f(x; dims=$dims); dims=$dims)))
-        $(permutation !== ntuple(identity, length(permutation)) && :(x = permutedims(x, $permutation)))
+        $(isempty(dims) || :(x = dropdims(f(x; dims=$dims); dims=$dims)))
+        $(permutation === ntuple(identity, length(permutation)) || :(x = permutedims(x, $permutation)))
         $(isnothing(shape_out) || :(x = reshape(x, $shape_out)))
         return x
     end

@@ -35,7 +35,7 @@ true
     shape_out = get_shape_out(right)
     quote
         $(isnothing(shape_in) || :(x = reshape(x, $shape_in)))
-        $(permutation !== ntuple(identity, length(permutation)) && :(x = permutedims(x, $permutation)))
+        $(permutation === ntuple(identity, length(permutation)) || :(x = permutedims(x, $permutation)))
         $(isnothing(shape_out) || :(x = reshape(x, $shape_out)))
         return x
     end
