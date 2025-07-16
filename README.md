@@ -23,7 +23,7 @@
 
 Einops patterns can be constructed with the `einops` string macro, e.g. `einops"a b -> (b a)"` expands to the form `(:a, :b) --> ((:b, :a),)`, where `-->` is a custom operator that puts the left and right operands as type parameters of a special pattern type.
 
-The snippets below show identical transformations expressed first with Einops (one readable line) and then with "hand-rolled" Julia primitives. Notice how Einops collapses multiple e.g. `reshape` / `permutedims` / `dropdims` / `repeat` calls into a single, declarative statement. Note that Einops simply expands to these primitives under the hood, and avoids no-ops, so there is little to no performance overhead.
+The snippets below show identical transformations expressed first with Einops (one readable line) and then with "hand-rolled" Julia primitives. Notice how Einops collapses multiple e.g. `reshape` / `permutedims` / `dropdims` / `repeat` calls into a single, declarative statement. Note that Einops simply expands to such primitives under the hood, and avoids no-ops, so there is little to no performance overhead.
 
 ```julia
 rearrange(x, einops"a b c -> (a b) c")
