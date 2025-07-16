@@ -12,6 +12,10 @@ function extract(T::Type, input_tuple::Tuple)
     return (instances_from_first..., extract(T, rest_elements)...)
 end
 
+@generated function findtype(::Type{T}, xs::Tuple) where T
+    return Expr(:tuple, (i for (i, el_type) in enumerate(xs.parameters) if el_type <: T)...)
+end
+
 function anonymous_symbols(prefix, N)
     symbols = []
     for i in 1:N

@@ -1,8 +1,9 @@
 module Einops
 
-using ChainRulesCore
 using EllipsisNotation; export ..
 using TupleTools: flatten, insertat
+using ChainRulesCore: @ignore_derivatives
+using OMEinsum: StaticEinCode
 
 include("utils.jl")
 

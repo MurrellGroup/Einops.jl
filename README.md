@@ -52,13 +52,13 @@ repeat(reshape(x, 1, size(x)...), 2, ntuple(Returns(1), ndims(x))..., 3)
 ```julia
 rearrange(q, einops"(d h) l b -> d l (h b)"; d=head_dim)
 # vs
-reshape(permutedims(reshape(q, head_dim, size(q, 1) ÷ head_dim, size(q)[2:3]), (2, 1, 3, 4)), head_dim, size(q, 2), :)
+reshape(permutedims(reshape(q, head_dim, :, size(q)[2:3]...), (1, 3, 2, 4)), head_dim, size(q, 2), :)
 ```
 
 ```julia
 repeat(k, einops"(d h) l b -> d l (r h b)"; d=head_dim, r=repeats)
 # vs
-reshape(repeat(permutedims(reshape(k, head_dim, size(k, 1) ÷ head_dim, size(k)[2:3]), (2, 1, 3, 4)), inner=(1, 1, repeats)), head_dim, size(k, 2), :)
+reshape(repeat(permutedims(reshape(k, head_dim, :, size(k)[2:3]...), (1, 3, 2, 4)), inner=(1, 1, repeats, 1)), head_dim, size(k, 2), :)
 ```
 
 ## Contributing

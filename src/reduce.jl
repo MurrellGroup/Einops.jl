@@ -43,16 +43,15 @@ true
     left_names, right_names = extract(Symbol, left), extract(Symbol, right)
     isempty(setdiff(right_names, left_names)) || throw(ArgumentError("All dimension names on right side of pattern must be present on left side: $(setdiff(right_names, left_names))"))
     dims = get_mapping(left_names, setdiff(left_names, right_names))
+    shape_in = get_shape_in(N, left, (pairs_type_to_names(context)..., keys(extra_context)...))
     permutation = get_permutation(intersect(left_names, right_names), right_names)
-    context_expr = !isempty(extra_context) && :(context = pairs(merge(NamedTuple(context), $extra_context)))
-    reduce_expr = !isempty(dims) && :(x = dropdims(f(x; dims=$dims); dims=$dims))
-    permute_expr = permutation !== ntuple(identity, length(permutation)) && :(x = _permutedims(x, $permutation))
+    shape_out = get_shape_out(right)
     quote
-        $context_expr
-        x = reshape(x, $(reshape_in(N, left, (pairs_type_to_names(context)..., keys(extra_context)...))))
-        $reduce_expr
-        $permute_expr
-        x = reshape(x, $(reshape_out(right)))
+        $(!isempty(extra_context) && :(context = pairs(merge(NamedTuple(context), $extra_context))))
+        $(isnothing(shape_in) || :(x = reshape(x, $shape_in)))
+        $(!isempty(dims) && :(x = dropdims(f(x; dims=$dims); dims=$dims)))
+        $(permutation !== ntuple(identity, length(permutation)) && :(x = _permutedims(x, $permutation)))
+        $(isnothing(shape_out) || :(x = reshape(x, $shape_out)))
         return x
     end
 end

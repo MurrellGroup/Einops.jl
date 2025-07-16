@@ -1,5 +1,3 @@
-using OMEinsum: StaticEinCode
-
 nested(x::Tuple) = (x,)
 nested(x::Tuple{Vararg{Tuple}}) = x
 

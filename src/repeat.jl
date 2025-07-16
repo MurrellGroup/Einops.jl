@@ -44,22 +44,21 @@ true
     left_names, right_names = extract(Symbol, left), extract(Symbol, right)
     repeat_names = setdiff(right_names, left_names)
     right_names_no_repeat = setdiff(right_names, repeat_names)
+    shape_in = get_shape_in(N, left, pairs_type_to_names(context))
     permutation = get_permutation(left_names, right_names_no_repeat)
     positions = get_mapping(right_names, repeat_names)
     repeats = [:(context[$(QuoteNode(name))]) for name in repeat_names]
     repeat_dims = [i in positions ? repeats[findfirst(==(i), positions)] : 1 for i in 1:maximum(positions; init=0)]
-    context_expr = !isempty(extra_context) && :(context = pairs(merge(NamedTuple(context), $extra_context)))
-    permute_expr = permutation !== ntuple(identity, length(permutation)) && :(x = _permutedims(x, $permutation))
-    repeat_expr = !all(==(1), repeat_dims) && :(
-        x = reshape(x, $(reshape_pre_repeat(length(left_names), positions)));
-        x = repeat(x, $(repeat_dims...))
-    )
+    shape_out = get_shape_out(right)
     quote
-        $context_expr
-        x = reshape(x, $(reshape_in(N, left, pairs_type_to_names(context)))) # extra context not needed
-        $permute_expr
-        $repeat_expr
-        x = reshape(x, $(reshape_out(right)))
+        $(context_expr = !isempty(extra_context) && :(context = pairs(merge(NamedTuple(context), $extra_context))))
+        $(isnothing(shape_in) || :(x = reshape(x, $shape_in)))
+        $(permutation !== ntuple(identity, length(permutation)) && :(x = _permutedims(x, $permutation)))
+        $(!all(==(1), repeat_dims) && :(
+            x = reshape(x, $(reshape_pre_repeat(length(left_names), positions)));
+            x = repeat(x, $(repeat_dims...))
+        ))
+        $(isnothing(shape_out) || :(x = reshape(x, $shape_out)))
         return x
     end
 end
