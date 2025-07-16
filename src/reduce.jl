@@ -50,7 +50,7 @@ true
         $(!isempty(extra_context) && :(context = pairs(merge(NamedTuple(context), $extra_context))))
         $(isnothing(shape_in) || :(x = reshape(x, $shape_in)))
         $(!isempty(dims) && :(x = dropdims(f(x; dims=$dims); dims=$dims)))
-        $(permutation !== ntuple(identity, length(permutation)) && :(x = _permutedims(x, $permutation)))
+        $(permutation !== ntuple(identity, length(permutation)) && :(x = permutedims(x, $permutation)))
         $(isnothing(shape_out) || :(x = reshape(x, $shape_out)))
         return x
     end

@@ -53,7 +53,7 @@ true
     quote
         $(context_expr = !isempty(extra_context) && :(context = pairs(merge(NamedTuple(context), $extra_context))))
         $(isnothing(shape_in) || :(x = reshape(x, $shape_in)))
-        $(permutation !== ntuple(identity, length(permutation)) && :(x = _permutedims(x, $permutation)))
+        $(permutation !== ntuple(identity, length(permutation)) && :(x = permutedims(x, $permutation)))
         $(!all(==(1), repeat_dims) && :(
             x = reshape(x, $(reshape_pre_repeat(length(left_names), positions)));
             x = repeat(x, $(repeat_dims...))

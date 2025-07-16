@@ -44,6 +44,8 @@ using Test
         x = rand(2, 3, 5*7*11)
         @test rearrange(x, (:a, :b, (:c, :d, :e)) --> ((:a, :e), :d, (:c, :b)), c=5, d=7) == reshape(permutedims(reshape(x, 2, 3, 5, 7, 11), (1, 5, 4, 3, 2)), 2*11, 7, 5*3)
         @test_throws "Unknown dimension sizes" rearrange(x, (:a, :b, (:c, :d, :e)) --> (:a, :b, :c, :d, :e), c=5)
+
+        @test rearrange(x, ((:a,), :b, :c) --> (:a, :b, (:c,))) == x
     end
 
     @testset "singleton dimensions" begin

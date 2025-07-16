@@ -57,7 +57,3 @@ function get_shape_out(right)
     end
     return new_shape
 end
-
-# fix for 1.10:
-_permutedims(x::AbstractArray{T,0}, ::Tuple{}) where T = x
-_permutedims(x, perm::NTuple{N,Int}) where N = permutedims(x, perm)

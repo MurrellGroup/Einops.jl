@@ -29,14 +29,13 @@ true
 ```
 """
 @generated function rearrange(x::AbstractArray{<:Any,N}, ::ArrowPattern{L,R}; context...) where {N,L,R}
-    #context = typeof(context)
     left, right = replace_ellipses(L, R, N)
     shape_in = get_shape_in(N, left, pairs_type_to_names(context))
     permutation = get_permutation(extract(Symbol, left), extract(Symbol, right))
     shape_out = get_shape_out(right)
     quote
         $(isnothing(shape_in) || :(x = reshape(x, $shape_in)))
-        $(permutation !== ntuple(identity, length(permutation)) && :(x = _permutedims(x, $permutation)))
+        $(permutation !== ntuple(identity, length(permutation)) && :(x = permutedims(x, $permutation)))
         $(isnothing(shape_out) || :(x = reshape(x, $shape_out)))
         return x
     end
