@@ -3,7 +3,7 @@ module Einops
 using EllipsisNotation; export ..
 using TupleTools: flatten, insertat
 using ChainRulesCore: @ignore_derivatives
-using OMEinsum: StaticEinCode, optimize_code, TreeSA
+using OMEinsum: OMEinsum
 
 include("utils.jl")
 
