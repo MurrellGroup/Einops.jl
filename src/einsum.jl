@@ -7,7 +7,7 @@ function get_size_dict(arrays, indices)
 end
 
 """
-    einsum(arrays..., (left --> right))
+    einsum(arrays..., pattern; optimizer=OMEinsum.GreedyMethod())
 
 Compute the einsum operation specified by the pattern.
 
@@ -22,7 +22,7 @@ true
 """
 function einsum(
     args::Vararg{Union{AbstractArray,ArrowPattern{L,R}}};
-    optimizer::OMEinsum.Optimizer = OMEinsum.TreeSA()
+    optimizer::OMEinsum.CodeOptimizer = OMEinsum.GreedyMethod()
 ) where {L,R}
     arrays::Tuple{Vararg{AbstractArray}} = Base.front(args)
     last(args)::ArrowPattern
