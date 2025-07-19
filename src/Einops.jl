@@ -2,8 +2,6 @@ module Einops
 
 using EllipsisNotation; export ..
 using TupleTools: flatten, insertat
-using ChainRulesCore: @ignore_derivatives
-using OMEinsum: StaticEinCode
 
 include("utils.jl")
 
@@ -22,9 +20,6 @@ export reduce
 
 include("repeat.jl")
 export repeat
-
-include("einsum.jl")
-export einsum
 
 include("pack_unpack.jl")
 export pack, unpack

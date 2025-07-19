@@ -21,9 +21,9 @@
 
 ## Einops vs Base primitives
 
-Einops patterns can be constructed with the `einops` string macro, e.g. `einops"a b -> (b a)"` expands to the form `(:a, :b) --> ((:b, :a),)`, where `-->` is a custom operator that puts the left and right operands as type parameters of a special pattern type.
+Einops uses patterns with explicitly named dimensions, which can be constructed with the `einops` string macro, e.g. `einops"a b -> (b a)"` expands to the form `(:a, :b) --> ((:b, :a),)`, where `-->` is a custom operator that puts the left and right operands as type parameters of a special pattern type.
 
-The snippets below show identical transformations expressed first with Einops (one readable line) and then with "hand-rolled" Julia primitives. Notice how Einops collapses multiple e.g. `reshape` / `permutedims` / `dropdims` / `repeat` calls into a single, declarative statement. Note that Einops simply expands to such primitives under the hood, and avoids no-ops, so there is little to no performance overhead.
+The snippets below show identical transformations expressed first with Einops (one readable line) and then with "hand-rolled" Julia primitives. Notice how Einops collapses multiple e.g. `reshape` / `permutedims` / `dropdims` / `repeat` calls into a single, declarative statement, while still expanding to such primitives under the hood and avoiding no-ops.
 
 ```julia
 rearrange(x, einops"a b c -> (a b) c")
@@ -66,6 +66,10 @@ repeat(k, einops"(d h) l b -> d l (r h b)"; d=head_dim, r=repeats)
 # vs
 reshape(repeat(permutedims(reshape(k, head_dim, :, size(k)[2:3]...), (1, 3, 2, 4)), inner=(1, 1, repeats, 1)), head_dim, size(k, 2), :)
 ```
+
+## Einsum
+
+Einops.jl v0.1 included support for `einsum` operations, but due to the complexities of `einsum`, we henceforth refer to [OMEinsum.jl](https://github.com/under-Peter/OMEinsum.jl) for einsum operations.
 
 ## Contributing
 

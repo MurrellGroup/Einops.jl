@@ -12,17 +12,7 @@ function extract(T::Type, input_tuple::Tuple)
     return (instances_from_first..., extract(T, rest_elements)...)
 end
 
-@generated function findtype(::Type{T}, xs::Tuple) where T
-    return Expr(:tuple, (i for (i, el_type) in enumerate(xs.parameters) if el_type <: T)...)
-end
-
-function anonymous_symbols(prefix, N)
-    symbols = []
-    for i in 1:N
-        push!(symbols, Symbol("$(prefix)_$i"))
-    end
-    return Tuple(symbols)
-end
+anonymous_symbols(prefix, N) = Tuple(Symbol("$(prefix)_$i") for i in 1:N)
 
 function remove_anonymous_dims(side)
     integers = filter(!isone, extract(Integer, side))

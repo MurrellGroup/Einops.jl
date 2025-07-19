@@ -16,7 +16,6 @@ EINOPS_TEST_REACTANT && Pkg.add("Reactant")
     include("rearrange.jl")
     include("reduce.jl")
     include("repeat.jl")
-    include("einsum.jl")
     include("pack_unpack.jl")
     include("robustness.jl")
 

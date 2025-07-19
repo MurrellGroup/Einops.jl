@@ -52,20 +52,3 @@ julia> parse_shape(rand(2,2,4), (:a, :a, :b))  # duplicate 'a' with same size
         NamedTuple{$(Tuple(unique_names))}($(Expr(:tuple, (:(size(x, $i)) for i in unique_inds)...)))
     end
 end
-
-function parse_shape(x::AbstractArray, ellipsis_pattern)
-    Base.depwarn("""
-    `parse_shape(x, ellipsis_pattern)` is not type stable, use `parse_shape(x, Val(ellipsis_pattern))`
-    or construct the pattern using `@einops_str` instead.
-    """, :parse_shape)
-    parse_shape(x, Val(ellipsis_pattern))
-end
-
-# output type is statically knowable when pattern doesn't contain ellipses
-# (needs to be constant-propagated)
-function parse_shape(x::AbstractArray{<:Any,N}, pattern::Tuple{Vararg{Union{Symbol,typeof(-)}}}) where N
-    names = extract(Symbol, pattern)
-    inds = findtype(Symbol, pattern)
-    shape_info = @ignore_derivatives NamedTuple{names,NTuple{length(inds),Int}}(size(x, i) for i in inds)
-    return shape_info
-end

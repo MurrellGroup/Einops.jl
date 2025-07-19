@@ -1,17 +1,13 @@
 name = "Einops"
 uuid = "e3ce28c8-8bfb-4704-8add-e3e7f14b55c9"
+version = "0.2.0"
 authors = ["Anton Oresten <antonoresten@gmail.com> and contributors"]
-version = "0.1.8"
 
 [deps]
-ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
 EllipsisNotation = "da5c29d0-fa7d-589e-88eb-ea29b0a81949"
-OMEinsum = "ebe7aa44-baf0-506c-a96f-8464559b3922"
 TupleTools = "9d95972d-f1c8-5527-a6e0-b4b365fa01f6"
 
 [compat]
-ChainRulesCore = "1.7"
 EllipsisNotation = "1"
-OMEinsum = "0.8"
 TupleTools = "1"
 julia = "1.9"

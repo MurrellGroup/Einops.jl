@@ -36,16 +36,3 @@ function replace_ellipses_parse_shape(pattern, N)
     new_pattern = insertat(pattern, ellipsis_index, ntuple(Returns(-), N - length(pattern) + 1))
     return new_pattern
 end
-
-@generated function replace_ellipses_einsum(::ArrowPattern{left,right}, ::Val{Ns}) where {left,right,Ns}
-    pattern = left --> right
-    (..) ∉ flatten(left) && (..) ∉ flatten(right) && return :($pattern)
-    (..) ∉ flatten(left) && (..) in flatten(right) && throw("Found ellipsis on right side but not left side: $pattern")
-    inds = findall(t -> (..) in t, left)
-    replacements = [ellipsis_replacement(side, N) for (side, N) in zip(left[inds], Ns[inds])]
-    allequal(replacements) || throw("Ellipses used for different number of dimensions")
-    replacement = only(unique(replacements))
-    new_left = Tuple((..) in t ? insertat(t, findfirst(==(..), t), replacement) : t for t in left)
-    new_right = (..) in right ? insertat(right, findfirst(==(..), right), replacement) : right
-    :($(new_left --> new_right))
-end
