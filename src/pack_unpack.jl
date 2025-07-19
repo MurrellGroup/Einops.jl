@@ -19,6 +19,9 @@ packed_size(dims::Dims, pattern::PackPattern) = (size_before_wildcard(dims, patt
 
 Pack a vector of arrays into a single array according to the pattern.
 
+!!! note
+    This function has not been thoroughly tested, and may not be type stable or differentiable.
+
 # Examples
 
 ```jldoctest
@@ -53,6 +56,9 @@ splice(a::Dims, i::Int, r::Dims) = (a[1:i-1]..., r..., a[i+1:end]...)
 
 Unpack a single array into a vector of arrays according to the pattern.
 
+!!! note
+    This function has not been thoroughly tested, and may not be type stable or differentiable.
+
 # Examples
 
 ```jldoctest
@@ -65,7 +71,7 @@ julia> packed_array = rand(2,3,16);
 
 julia> packed_shapes = [(), (7,), (4, 2)];
 
-julia> unpack(packed_array, packed_shapes, (:i, :j, *)) .|> size
+julia> unpack(packed_array, packed_shapes, einops"i j *") .|> size
 3-element Vector{Tuple{Int64, Int64, Vararg{Int64}}}:
  (2, 3)
  (2, 3, 7)

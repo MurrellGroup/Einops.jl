@@ -2,7 +2,7 @@
     parse_shape(x, pattern)
 
 Capture the shape of an array in a pattern by naming dimensions using `Symbol`s,
-and `-` to ignore dimensions, and `...` to ignore any number of dimensions.
+and `-` to ignore dimensions, and `..` to ignore any number of dimensions.
 
 Duplicate symbols are allowed, but they must refer to dimensions of the same size.
 
