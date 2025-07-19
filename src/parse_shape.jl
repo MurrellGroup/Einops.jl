@@ -13,10 +13,10 @@ Duplicate symbols are allowed, but they must refer to dimensions of the same siz
 # Examples
 
 ```jldoctest
-julia> parse_shape(rand(2,3,4), (:a, :b, -))
+julia> parse_shape(rand(2,3,4), Val((:a, :b, -)))
 (a = 2, b = 3)
 
-julia> parse_shape(rand(2,3), (-, -))
+julia> parse_shape(rand(2,3), Val((-, -)))
 NamedTuple()
 
 julia> parse_shape(rand(2,3,4,5), einops"first second third fourth")
@@ -25,7 +25,7 @@ julia> parse_shape(rand(2,3,4,5), einops"first second third fourth")
 julia> parse_shape(rand(2,3,4), Val((:a, :b, ..)))
 (a = 2, b = 3)
 
-julia> parse_shape(rand(2,2,4), (:a, :a, :b))  # duplicate 'a' with same size
+julia> parse_shape(rand(2,2,4), Val((:a, :a, :b)))  # duplicate 'a' with same size
 (a = 2, b = 4)
 ```
 """

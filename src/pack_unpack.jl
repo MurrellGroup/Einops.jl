@@ -71,7 +71,7 @@ julia> packed_array = rand(2,3,16);
 
 julia> packed_shapes = [(), (7,), (4, 2)];
 
-julia> unpack(packed_array, packed_shapes, (:i, :j, *)) .|> size
+julia> unpack(packed_array, packed_shapes, einops"i j *") .|> size
 3-element Vector{Tuple{Int64, Int64, Vararg{Int64}}}:
  (2, 3)
  (2, 3, 7)

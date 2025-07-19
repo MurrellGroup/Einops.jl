@@ -18,7 +18,7 @@ but not drop them.
 ```jldoctest
 julia> x = randn(64, 32, 35);
 
-julia> y = reduce(sum, x, (:c, :b, :t) --> (:c, :b));
+julia> y = reduce(sum, x, einops"c b t -> c b");
 
 julia> size(y)
 (64, 32)

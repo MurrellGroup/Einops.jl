@@ -11,7 +11,7 @@ Can always be expressed as a `reshape` + `permutedims` + `reshape`.
 ```jldoctest
 julia> x = rand(2,3,5);
 
-julia> y = rearrange(x, (:a, :b, :c) --> (:c, :b, :a));
+julia> y = rearrange(x, einops"a b c -> c b a");
 
 julia> size(y)
 (5, 3, 2)
@@ -24,7 +24,7 @@ julia> z = rearrange(x, (:a, :b, :c) --> (:a, (:c, :b)));
 julia> size(z)
 (2, 15)
 
-julia> z == reshape(permutedims(x, (1,3,2)), 2,5*3)
+julia> z == reshape(permutedims(x, (1, 3, 2)), 2, 5*3)
 true
 ```
 """
