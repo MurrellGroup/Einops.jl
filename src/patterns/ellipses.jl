@@ -3,9 +3,6 @@
 
 For patterns constructed with `-->`, one can use `..` (from EllipsisNotation.jl) to represent multiple dimensions.
 
-!!! note
-    This is not type stable, and may not be differentiable.
-
 # Examples
 
 ```jldoctest
