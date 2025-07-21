@@ -1,3 +1,20 @@
+"""
+    ..
+
+For patterns constructed with `-->`, one can use `..` (from EllipsisNotation.jl) to represent multiple dimensions.
+
+!!! note
+    This is not type stable, and may not be differentiable.
+
+# Examples
+
+```jldoctest
+julia> rearrange(rand(2,3,4), (:a, ..) --> (.., :a)) |> size
+(3, 4, 2)
+```
+"""
+..
+
 function ellipsis_replacement(side, N)
     count(==(..), side) <= 1 || throw("At most one ellipsis is allowed: $side")
     return anonymous_symbols(:__ellipsis, N - length(side) + 1)
