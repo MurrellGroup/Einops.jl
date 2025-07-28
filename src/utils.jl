@@ -1,8 +1,17 @@
 pairs_type_to_names(::Type{<:Base.Pairs{Symbol,<:Any,<:Any,<:NamedTuple{names}}}) where names = names
 
-function get_shape_in(N, left, context_names)
+function validate_unique_except(symbols, allowed_duplicates, side_name)
+    if isempty(allowed_duplicates)
+        allunique(symbols) || throw(ArgumentError("$side_name names $(symbols) are not unique"))
+    else
+        non_dup_symbols = filter(s -> s ∉ allowed_duplicates, symbols)
+        allunique(non_dup_symbols) || throw(ArgumentError("$side_name names $(symbols) contain duplicates in non-repeatable dimensions"))
+    end
+end
+
+function get_shape_in(N, left, context_names, allow_duplicates=())
     length(left) == N || throw(ArgumentError("Input length $(length(left)) does not match array dimensionality $N"))
-    allunique(extract(Symbol, left)) || throw(ArgumentError("Left names $(left) are not unique"))
+    validate_unique_except(extract(Symbol, left), allow_duplicates, "Left")
     left isa Tuple{Vararg{Symbol}} && return nothing
     new_shape = :()
     sizes = new_shape.args
@@ -27,15 +36,15 @@ function get_shape_in(N, left, context_names)
     return new_shape
 end
 
-get_mapping(left, right) = Tuple(findfirst.(isequal.(right), (left,)))
+get_mapping(left, right) = Tuple(vcat(findall.(isequal.(right), (left,))...))
 
 function get_permutation(left, right)
     isempty(setdiff(left, right)) || throw(ArgumentError("Set of left names $(left) does not match set of right names $(right)"))
     return get_mapping(left, right)
 end
 
-function get_shape_out(right)
-    allunique(extract(Symbol, right)) || throw(ArgumentError("Right names $(right) are not unique"))
+function get_shape_out(right, allow_duplicates=())
+    validate_unique_except(extract(Symbol, right), allow_duplicates, "Right")
     right isa Tuple{Vararg{Symbol}} && return nothing
     new_shape = :()
     sizes = new_shape.args

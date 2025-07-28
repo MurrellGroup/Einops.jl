@@ -47,9 +47,9 @@ true
     shape_in = get_shape_in(N, left, pairs_type_to_names(context))
     permutation = get_permutation(left_names, right_names_no_repeat)
     positions = get_mapping(right_names, repeat_names)
-    repeats = [:(context[$(QuoteNode(name))]) for name in repeat_names]
+    repeats = [:(context[$(QuoteNode(name))]) for name in right_names if name in repeat_names]
     repeat_dims = [i in positions ? repeats[findfirst(==(i), positions)] : 1 for i in 1:maximum(positions; init=0)]
-    shape_out = get_shape_out(right)
+    shape_out = get_shape_out(right, repeat_names)
     quote
         $(isempty(extra_context) || :(context = pairs(merge(NamedTuple(context), $extra_context))))
         $(isnothing(shape_in) || :(x = reshape(x, $shape_in)))
