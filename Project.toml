@@ -1,7 +1,7 @@
 name = "Einops"
 uuid = "e3ce28c8-8bfb-4704-8add-e3e7f14b55c9"
 authors = ["Anton Oresten <antonoresten@gmail.com> and contributors"]
-version = "0.1.8"
+version = "0.1.9"
 
 [deps]
 ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
