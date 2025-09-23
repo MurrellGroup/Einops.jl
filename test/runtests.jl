@@ -6,7 +6,7 @@ using Pkg
 const EINOPS_TEST_ZYGOTE = get(ENV, "EINOPS_TEST_ZYGOTE", "false") == "true"
 EINOPS_TEST_ZYGOTE && Pkg.add("Zygote")
 
-const EINOPS_TEST_REACTANT = VERSION >= v"1.10" && get(ENV, "EINOPS_TEST_REACTANT", "false") == "true"
+const EINOPS_TEST_REACTANT = v"1.10" <= VERSION < v"1.11" && get(ENV, "EINOPS_TEST_REACTANT", "false") == "true"
 EINOPS_TEST_REACTANT && Pkg.add("Reactant")
 
 @testset "Einops.jl" begin
