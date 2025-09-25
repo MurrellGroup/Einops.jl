@@ -7,6 +7,8 @@ using OMEinsum: OMEinsum
 
 include("utils.jl")
 
+include("Reshapable.jl")
+
 include("patterns/patterns.jl")
 export ArrowPattern, -->
 export @einops_str
