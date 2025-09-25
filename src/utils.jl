@@ -1,3 +1,11 @@
+reshapable(x::AbstractArray) = ArrayInterface.restructure(x, x)
+
+function hardreshape(x, args...)
+    y = reshape(reshapable(x), args...)
+    y isa ReshapedArray && throw(ArgumentError("Result of `$hardreshape(::$(typeof(x)), ...)` is a `ReshapedArray`. Please define `Einops.reshapable(::$(typeof(x)))`."))
+    return y
+end
+
 pairs_type_to_names(::Type{<:Base.Pairs{Symbol,<:Any,<:Any,<:NamedTuple{names}}}) where names = names
 
 function get_shape_in(N, left, context_names)

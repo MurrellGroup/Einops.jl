@@ -4,6 +4,7 @@ authors = ["Anton Oresten <antonoresten@gmail.com> and contributors"]
 version = "0.1.9"
 
 [deps]
+ArrayInterface = "4fba245c-0d91-5ea0-9b3e-6abc04ee57a9"
 ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
 EllipsisNotation = "da5c29d0-fa7d-589e-88eb-ea29b0a81949"
 OMEinsum = "ebe7aa44-baf0-506c-a96f-8464559b3922"
