@@ -10,7 +10,7 @@ function validate_unique_except(symbols, allowed_duplicates, side_name)
 end
 
 function get_shape_in(N, left, context_names, allow_duplicates=())
-    length(left) == N || throw(ArgumentError("Input length $(length(left)) does not match array dimensionality $N"))
+    #length(left) == N || throw(ArgumentError("Input length $(length(left)) does not match array dimensionality $N"))
     validate_unique_except(extract(Symbol, left), allow_duplicates, "Left")
     left isa Tuple{Vararg{Symbol}} && return nothing
     new_shape = :()
