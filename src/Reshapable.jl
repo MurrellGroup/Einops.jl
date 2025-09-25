@@ -6,7 +6,7 @@ export reshapable, hardreshape
 
 reshapable(x::DenseArray) = x
 reshapable(x::ReshapedArray) = x # XXX: should `hardreshape` simply never return ReshapedArray? 
-reshapable(x::AbstractArray) = copy(x)
+reshapable(x::AbstractArray) = copy(x) # XXX: copy doesn't necessarily return a DenseArray...
 
 hardreshape(x, args...) = reshape(reshapable(x), args...)
 
