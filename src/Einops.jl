@@ -16,8 +16,6 @@ export parse_shape
 
 include("rearrange.jl")
 export rearrange
-export expand
-export collapse
 
 include("reduce.jl")
 export reduce
