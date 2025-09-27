@@ -1,8 +1,8 @@
-reshapable(x::AbstractArray) = ArrayInterface.restructure(x, x)
+reshapable(x::AbstractArray) = restructure(x, x)
 
 function hardreshape(x, args...)
     y = reshape(reshapable(x), args...)
-    y isa ReshapedArray && throw(ArgumentError("Result of `$hardreshape(::$(typeof(x)), ...)` is a `ReshapedArray`. Please define `Einops.reshapable(::$(typeof(x)))`."))
+    y isa Base.ReshapedArray && throw(ArgumentError("Result of `$hardreshape(::$(typeof(x)), ...)` is a `$(Base.ReshapedArray)`. Please define `$reshapable(::$(typeof(x)))`."))
     return y
 end
 
