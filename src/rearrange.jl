@@ -46,7 +46,7 @@ rearrange(x, pattern::ArrowPattern; context...) = rearrange(stack(x), pattern; c
 
 @generated function expand(x::AbstractArray{<:Any,N}, ::Val{L}; context...) where {N,L}
     left = replace_ellipses_left(L, N)
-    shape_in = get_shape_in(N, left, pairs_type_to_names(context))
+    shape_in = get_shape_in(N, left, pairs_type_to_names(context); allow_repeats=true)
     quote
         $(isnothing(shape_in) || :(x = reshape(x, $shape_in)))
         return x
@@ -54,31 +54,7 @@ rearrange(x, pattern::ArrowPattern; context...) = rearrange(stack(x), pattern; c
 end
 
 @generated function collapse(x::AbstractArray{<:Any,N}, ::Val{R}; context...) where {N,R}
-    # Replace ellipsis on the right side using available rank information N.
-    # Number of consumed dimensions on the right equals the number of symbols.
-    right = begin
-        # Count symbol dimensions (they consume axes); integers don't consume axes
-        symbol_count = length(extract(Symbol, R))
-        if (..) ∈ flatten(R)
-            # Allow only a single ellipsis
-            count(==(..), flatten(R)) <= 1 || throw("Only one ellipsis is allowed: $R")
-            # Ellipsis must stand for the remaining axes
-            m = N - symbol_count
-            m >= 0 || throw("Ellipsis represents a negative number of dimensions: $R with N=$N")
-            replacement = anonymous_symbols(:__ellipsis, m)
-            if (..) in R
-                insertat(R, only(findfirst(==(..), R)), replacement)
-            else
-                # ellipsis is in a nested tuple
-                i = findfirst(t -> t isa Tuple && (..) in t, R)
-                t = R[i]
-                j = findfirst(==(..), t)
-                insertat(R, i, (insertat(t, j, replacement),))
-            end
-        else
-            R
-        end
-    end
+    right = replace_ellipses_collapse(R, N)
     shape_out = get_shape_out(right)
     quote
         $(isnothing(shape_out) || :(x = reshape(x, $shape_out)))

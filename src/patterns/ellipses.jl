@@ -63,6 +63,24 @@ function replace_ellipses_parse_shape(pattern, N)
     return new_pattern
 end
 
+function replace_ellipses_collapse(right, N)
+    (..) ∈ flatten(right) || return right
+    count(==(..), flatten(right)) == 1 || throw("Only one ellipsis is allowed: $right")
+    symbol_count = length(extract(Symbol, right))
+    remaining = N - symbol_count
+    remaining >= 0 || throw("Ellipsis represents a negative number of dimensions: $right with N=$N")
+    replacement = anonymous_symbols(:__ellipsis, remaining)
+    if (..) in right
+        return insertat(right, only(findfirst(==(..), right)), replacement)
+    else
+        # ellipsis is in a nested tuple
+        i = findfirst(t -> t isa Tuple && (..) in t, right)
+        t = right[i]
+        j = findfirst(==(..), t)
+        return insertat(right, i, (insertat(t, j, replacement),))
+    end
+end
+
 @generated function replace_ellipses_einsum(::ArrowPattern{left,right}, ::Val{Ns}) where {left,right,Ns}
     pattern = left --> right
     (..) ∉ flatten(left) && (..) ∉ flatten(right) && return :($pattern)

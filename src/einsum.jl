@@ -7,6 +7,18 @@ function get_size_dict(arrays, indices)
     return Dict(zip(keys(size_named_tuple), values(size_named_tuple)))
 end
 
+function omeinsum_indices(L′, R′)
+    L_flat = Tuple(map(flatten, L′))
+    R_flat = flatten(R′)
+    L_ome = Tuple(begin
+        any(x -> x isa Int && x != 1, li) && throw(ArgumentError("Only singleton integer dimensions (1) are allowed in left indices: $li"))
+        Tuple(e for e in li if e isa Symbol)
+    end for li in L_flat)
+    any(x -> x isa Int && x != 1, R_flat) && throw(ArgumentError("Only singleton integer dimensions (1) are allowed in right indices: $R_flat"))
+    R_ome = Tuple(e for e in R_flat if e isa Symbol)
+    return L_ome, R_ome
+end
+
 """
     einsum(arrays..., pattern; optimizer=OMEinsum.GreedyMethod())
 
@@ -32,16 +44,8 @@ function einsum(
     L′, R′ = @ignore_derivatives replace_ellipses_einsum(nested(L) --> R, Val(ndims.(arrays)))
     # Expand arrays according to possibly nested left indices
     arrays = expand.(arrays, nested_val(Val(L)); context...)
-    # Flatten indices for OMEinsum (it does not understand nested tuples)
-    L_flat = Tuple(map(flatten, L′))
-    R_flat = flatten(R′)
-    # Remove singleton literals (1) from index lists for OMEinsum, which expects only Symbols
-    L_ome = Tuple(begin
-        any(x -> x isa Int && x != 1, li) && throw(ArgumentError("Only singleton integer dimensions (1) are allowed in left indices: $li"))
-        Tuple(e for e in li if e isa Symbol)
-    end for li in L_flat)
-    any(x -> x isa Int && x != 1, R_flat) && throw(ArgumentError("Only singleton integer dimensions (1) are allowed in right indices: $R_flat"))
-    R_ome = Tuple(e for e in R_flat if e isa Symbol)
+    # Prepare OMEinsum indices (flat symbols only)
+    L_ome, R_ome = omeinsum_indices(L′, R′)
     optimized_code = @ignore_derivatives begin
         code = OMEinsum.StaticEinCode{Symbol,L_ome,R_ome}()
         OMEinsum.optimize_code(code, get_size_dict(arrays, L_ome), optimizer)
