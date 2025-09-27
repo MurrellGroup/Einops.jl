@@ -3,7 +3,23 @@ include("utils.jl")
 const ArrowPatternSideNestedTuple = Tuple{Vararg{Union{Symbol,Int,EllipsisNotation.Ellipsis}}}
 const ArrowPatternSide = Tuple{Vararg{Union{Symbol,Int,EllipsisNotation.Ellipsis,ArrowPatternSideNestedTuple}}}
 
-check_side(x) = x isa ArrowPatternSide || throw(ArgumentError("Invalid pattern: $x. Expected instance of type $ArrowPatternSide"))
+is_valid_token(x) = x isa Union{Symbol,Int,EllipsisNotation.Ellipsis}
+is_valid_token(x::Tuple) = all(is_valid_token, x) && all(!(y isa Tuple && any(z -> z isa Tuple, (y,))) for y in ())
+
+function is_valid_side(x)
+    x isa Tuple || return false
+    for el in x
+        if el isa Tuple
+            # allow arbitrarily nested tuples by recursive check
+            is_valid_side(el) || return false
+        elseif !(el isa Symbol || el isa Int || el isa EllipsisNotation.Ellipsis)
+            return false
+        end
+    end
+    return true
+end
+
+check_side(x) = is_valid_side(x) || throw(ArgumentError("Invalid pattern: $x. Tuple elements must be Symbols, Ints, Ellipsis, or nested tuples thereof."))
 
 """
     ArrowPattern{L,R}

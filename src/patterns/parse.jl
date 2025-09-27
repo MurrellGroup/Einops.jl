@@ -64,4 +64,13 @@ end
 const SpecialToken = Dict(:* => (*), :_ => (-), :... => (..))
 get_special_token(symbol) = get(SpecialToken, symbol, symbol)
 mapfilter(f, pred, xs) = map(f, filter(pred, xs))
-tokenize_generic(pattern) = Val(Tuple(mapfilter(get_special_token ∘ Symbol, !isempty, split(pattern, ' '))))
+
+# Recursively map special tokens inside possibly nested tuples
+map_special_tokens(x) = x
+map_special_tokens(x::Symbol) = get_special_token(x)
+map_special_tokens(x::Tuple) = Tuple(map(map_special_tokens, x))
+
+# Generic patterns (no arrow) should still honor parentheses and commas,
+# producing nested tuples where appropriate. Reuse the side tokenizer and
+# then map special tokens like `_`, `*`, and `...`.
+tokenize_generic(pattern) = Val(map_special_tokens(tokenize_side(pattern)))
