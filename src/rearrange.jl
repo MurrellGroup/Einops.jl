@@ -43,3 +43,21 @@ end
 
 rearrange(x::AbstractArray{<:AbstractArray}, pattern::ArrowPattern; context...) = rearrange(stack(x), pattern; context...)
 rearrange(x, pattern::ArrowPattern; context...) = rearrange(stack(x), pattern; context...)
+
+@generated function expand(x::AbstractArray{<:Any,N}, ::Val{L}; context...) where {N,L}
+    left = replace_ellipses_left(L, N)
+    shape_in = get_shape_in(N, left, pairs_type_to_names(context); allow_repeats=true)
+    quote
+        $(isnothing(shape_in) || :(x = reshape(x, $shape_in)))
+        return x
+    end
+end
+
+@generated function collapse(x::AbstractArray{<:Any,N}, ::Val{R}; context...) where {N,R}
+    right = replace_ellipses_collapse(R, N)
+    shape_out = get_shape_out(right)
+    quote
+        $(isnothing(shape_out) || :(x = reshape(x, $shape_out)))
+        return x
+    end
+end

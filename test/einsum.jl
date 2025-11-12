@@ -33,3 +33,35 @@ using Test, LinearAlgebra
         @test einsum(matrix, einops"i i ->") |> size == ()
     end
 end
+
+@testset "Einsum - nested, ellipses, singletons" begin
+    @testset "nested group on right" begin
+        a = rand(2, 3)
+        b = rand(3, 4)
+        y = einsum(a, b, einops"i j, j (k k2) -> i k k2", k2=2)
+        @test size(y) == (2, 2, 2)
+        @test y ≈ reshape(a * b, 2, 2, 2)
+    end
+
+    @testset "nested group on left (both arrays)" begin
+        a = rand(2, 4)
+        b = rand(4, 5)
+        y = einsum(a, b, einops"i (k k2), (k k2) o -> i o", k2=2)
+        @test size(y) == (2, 5)
+        @test y ≈ a * b
+    end
+
+    @testset "ellipses with singleton on right" begin
+        x = rand(2, 3, 5)
+        y = rand(3, 4, 1, 5)
+        z = einsum(x, y, einops"i j ..., j (k k2) 1 ... -> i k 1 (k2 ...)", k2=2)
+        @test size(z) == (2, 2, 1, 10)
+    end
+
+    @testset "singleton on left" begin
+        x = rand(2, 1, 3)
+        y = einsum(x, einops"i 1 j -> i j")
+        @test size(y) == (2, 3)
+        @test y ≈ reshape(x, 2, 3)
+    end
+end
