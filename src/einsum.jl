@@ -26,16 +26,23 @@ function _einsum(
 ) where {L,R}
     # Replace ellipses in nested patterns using per-array ranks
     L′, R′ = @ignore_derivatives replace_ellipses_einsum(nested(L) --> R, Val(ndims.(arrays)))
+
+    # Infer dimension sizes from patterns and merge with user context
+    inferred = merge(parse_shape.(arrays, nested_val(Val(L)))...)
+    merged_context = merge(inferred, NamedTuple(context))
+
     # Expand arrays according to possibly nested left indices
-    arrays = expand.(arrays, nested_val(Val(L)); context...)
+    arrays = expand.(arrays, nested_val(Val(L)); merged_context...)
+
     # Prepare OMEinsum indices (flat symbols only)
     L_ome, R_ome = omeinsum_indices(L′, R′)
     optimized_code = @ignore_derivatives begin
         code = OMEinsum.StaticEinCode{Symbol,L_ome,R_ome}()
         OMEinsum.optimize_code(code, get_size_dict(arrays, L_ome), optimizer)
     end
+
     output = optimized_code(arrays...)
-    return collapse(output, Val(R); context...)
+    return collapse(output, Val(R); merged_context...)
 end
 
 """

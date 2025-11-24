@@ -35,6 +35,14 @@ using Test, LinearAlgebra
 end
 
 @testset "Einsum - nested, ellipses, singletons" begin
+
+    @testset "vwn" begin
+        x = rand(6, 7)
+        y = rand(3, 5)
+        @test einsum(x, y, einops"(d n) ..., n m -> (d m) ...") ==
+              reshape(einsum(reshape(x, 2, 3, 7), y, einops"d n ..., n m -> d m ..."), 10, 7)
+    end
+
     @testset "nested group on right" begin
         a = rand(2, 3)
         b = rand(3, 4)
