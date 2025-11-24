@@ -1,8 +1,8 @@
 pairs_type_to_names(::Type{<:Base.Pairs{Symbol,<:Any,<:Any,<:NamedTuple{names}}}) where names = names
 
-function get_shape_in(N, left, context_names)
+function get_shape_in(N, left, context_names; allow_repeats=false)
     length(left) == N || throw(ArgumentError("Input length $(length(left)) does not match array dimensionality $N"))
-    allunique(extract(Symbol, left)) || throw(ArgumentError("Left names $(left) are not unique"))
+    allunique(extract(Symbol, left)) || allow_repeats || throw(ArgumentError("Left names $(left) are not unique"))
     left isa Tuple{Vararg{Symbol}} && return nothing
     new_shape = :()
     sizes = new_shape.args
