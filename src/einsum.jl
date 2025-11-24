@@ -19,20 +19,6 @@ function omeinsum_indices(L′, R′)
     return L_ome, R_ome
 end
 
-"""
-    einsum(arrays..., pattern; optimizer=OMEinsum.GreedyMethod())
-
-Compute the einsum operation specified by the pattern.
-
-# Examples
-
-```jldoctest
-julia> x, y = rand(2,3), rand(3,4);
-
-julia> einsum(x, y, ((:i, :j), (:j, :k)) --> (:i, :k)) == x * y
-true
-```
-"""
 function _einsum(
     ::ArrowPattern{L,R}, arrays::Vararg{AbstractArray};
     optimizer::OMEinsum.CodeOptimizer = OMEinsum.GreedyMethod(),
@@ -52,6 +38,20 @@ function _einsum(
     return collapse(output, Val(R); context...)
 end
 
+"""
+    einsum(arrays..., pattern; optimizer=OMEinsum.GreedyMethod())
+
+Compute the einsum operation specified by the pattern.
+
+# Examples
+
+```jldoctest
+julia> x, y = rand(2,3), rand(3,4);
+
+julia> einsum(x, y, ((:i, :j), (:j, :k)) --> (:i, :k)) == x * y
+true
+```
+"""
 function einsum(args::Vararg{Union{AbstractArray,ArrowPattern}}; kws...)
     arrays::Tuple{Vararg{AbstractArray}} = Base.front(args)
     pattern = last(args)::ArrowPattern
