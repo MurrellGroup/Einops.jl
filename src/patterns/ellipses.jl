@@ -105,7 +105,7 @@ end
         return t
     end
 
-    new_left = Tuple((..) ∈ flatten(t) ? replace_in_tuple(t) : t for t in left)
-    new_right = (..) ∈ flatten(right) ? replace_in_tuple(right) : right
+    new_left = Tuple(replace_in_tuple(t) for t in left)
+    new_right = replace_in_tuple(right)
     :($(new_left --> new_right))
 end

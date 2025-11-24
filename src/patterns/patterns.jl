@@ -3,9 +3,6 @@ include("utils.jl")
 const ArrowPatternSideNestedTuple = Tuple{Vararg{Union{Symbol,Int,EllipsisNotation.Ellipsis}}}
 const ArrowPatternSide = Tuple{Vararg{Union{Symbol,Int,EllipsisNotation.Ellipsis,ArrowPatternSideNestedTuple}}}
 
-is_valid_token(x) = x isa Union{Symbol,Int,EllipsisNotation.Ellipsis}
-is_valid_token(x::Tuple) = all(is_valid_token, x) && all(!(y isa Tuple && any(z -> z isa Tuple, (y,))) for y in ())
-
 function is_valid_side(x)
     x isa Tuple || return false
     for el in x

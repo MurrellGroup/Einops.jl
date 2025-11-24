@@ -63,7 +63,6 @@ end
 
 const SpecialToken = Dict(:* => (*), :_ => (-), :... => (..))
 get_special_token(symbol) = get(SpecialToken, symbol, symbol)
-mapfilter(f, pred, xs) = map(f, filter(pred, xs))
 
 # Recursively map special tokens inside possibly nested tuples
 map_special_tokens(x) = x

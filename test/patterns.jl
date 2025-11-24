@@ -65,6 +65,7 @@ using Test
             @test einops"* i" == Val((*, :i))
             @test einops"i *" == Val((:i, *))
             @test einops"i i" == Val((:i, :i))
+            @test einops"i 1 ..." == Val((:i, 1, ..))  # test map_special_tokens fallback for Int and ..
         end
 
         @testset "parsing errors" begin
