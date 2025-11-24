@@ -33,13 +33,11 @@ julia> einsum(x, y, ((:i, :j), (:j, :k)) --> (:i, :k)) == x * y
 true
 ```
 """
-function einsum(
-    args::Vararg{Union{AbstractArray,ArrowPattern{L,R}}};
+function _einsum(
+    ::ArrowPattern{L,R}, arrays::Vararg{AbstractArray};
     optimizer::OMEinsum.CodeOptimizer = OMEinsum.GreedyMethod(),
     context...
 ) where {L,R}
-    arrays::Tuple{Vararg{AbstractArray}} = Base.front(args)
-    last(args)::ArrowPattern
     # Replace ellipses in nested patterns using per-array ranks
     L′, R′ = @ignore_derivatives replace_ellipses_einsum(nested(L) --> R, Val(ndims.(arrays)))
     # Expand arrays according to possibly nested left indices
@@ -52,4 +50,10 @@ function einsum(
     end
     output = optimized_code(arrays...)
     return collapse(output, Val(R); context...)
+end
+
+function einsum(args::Vararg{Union{AbstractArray,ArrowPattern}}; kws...)
+    arrays::Tuple{Vararg{AbstractArray}} = Base.front(args)
+    pattern = last(args)::ArrowPattern
+    return _einsum(pattern, arrays...; kws...)
 end
