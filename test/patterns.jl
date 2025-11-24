@@ -73,6 +73,14 @@ using Test
             @test_throws "'('" Einops.parse_pattern("-> (")
             @test_throws "')'" Einops.parse_pattern("-> )")
         end
+
+        @testset "unicode patterns" begin
+            @test Einops.parse_pattern("α β γ -> γ β α") == ((:α, :β, :γ) --> (:γ, :β, :α))
+            @test Einops.parse_pattern("日 本 語 -> 語 本 日") == ((:日, :本, :語) --> (:語, :本, :日))
+            @test Einops.parse_pattern("🔴 🔵 🟢 -> 🟢 🔵 🔴") == ((:🔴, :🔵, :🟢) --> (:🟢, :🔵, :🔴))
+            @test Einops.parse_pattern("(α β) γ -> γ (α β)") == (((:α, :β), :γ) --> (:γ, (:α, :β)))
+            @test Einops.parse_pattern("... α -> α ...") == ((.., :α) --> (:α, ..))
+        end
     end
 
     @testset "Pattern edge cases" begin

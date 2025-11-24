@@ -31,28 +31,30 @@ function tokenize_side(side::AbstractString)
         c = side[i]
         if c == ' '
             parse_token!(buf, tokens)
-            i += 1
+            i = nextind(side, i)
         elseif c == '('
             parse_token!(buf, tokens)
             push!(stack, tokens)
             tokens = Any[]
-            i += 1
+            i = nextind(side, i)
         elseif c == ')'
             parse_token!(buf, tokens)
             isempty(stack) && throw(ArgumentError("unmatched ')' in pattern"))
             sub = tokens
             tokens = pop!(stack)
             push!(tokens, Tuple(sub))
-            i += 1
+            i = nextind(side, i)
         elseif c == '.'
             # Expect literal "..."
-            (i + 2 ≤ lastindex(side) && side[i:i+2] == "...") ||
+            i2 = nextind(side, i)
+            i3 = i2 ≤ lastindex(side) ? nextind(side, i2) : i2
+            (i3 ≤ lastindex(side) && side[i2] == '.' && side[i3] == '.') ||
                 throw(ArgumentError("single '.' not allowed in pattern"))
             push!(tokens, ..)
-            i += 3
+            i = nextind(side, i3)
         else
             write(buf, c)
-            i += 1
+            i = nextind(side, i)
         end
     end
     parse_token!(buf, tokens)
