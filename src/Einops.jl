@@ -1,5 +1,6 @@
 module Einops
 
+using ArrayInterface: restructure
 using EllipsisNotation; export ..
 using TupleTools: flatten, insertat
 using ChainRulesCore: @ignore_derivatives

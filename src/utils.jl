@@ -1,3 +1,11 @@
+reshapable(x::AbstractArray) = restructure(x, x)
+
+function hardreshape(x, args...)
+    y = reshape(reshapable(x), args...)
+    y isa Base.ReshapedArray && throw(ArgumentError("Result of `$hardreshape(::$(typeof(x)), ...)` is a `$(Base.ReshapedArray)`. Please define `$reshapable(::$(typeof(x)))`."))
+    return y
+end
+
 pairs_type_to_names(::Type{<:Base.Pairs{Symbol,<:Any,<:Any,<:NamedTuple{names}}}) where names = names
 
 function get_shape_in(N, left, context_names; allow_repeats=false)
