@@ -50,6 +50,9 @@ end
 
 Compute the einsum operation specified by the pattern.
 
+!!! note
+    This function is not type stable.
+
 # Examples
 
 ```jldoctest
