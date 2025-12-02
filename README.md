@@ -116,6 +116,9 @@ Funky repeat
 
 ```julia
 repeat(x, einops"... -> 2 ... 3")
+
+
+
 ```
 </td>
 <td style="text-align:center">
@@ -138,6 +141,9 @@ Multi-Head Attention
 rearrange(q,
   einops"(d h) l b -> d l (h b)";
   d=head_dim)
+
+
+
 ```
 </td>
 <td style="text-align:center">
@@ -162,6 +168,11 @@ Grouped-Query Attention
 repeat(k,
   einops"(d h) l b -> d l (r h b)";
   d=head_dim, r=repeats)
+
+
+
+
+
 ```
 </td>
 <td style="text-align:center">
