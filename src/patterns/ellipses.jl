@@ -48,7 +48,7 @@ function replace_ellipses(left, right, N)
         (..) ∉ left && throw("Ellipsis is not allowed to be nested on left side.")
     else
         (..) ∈ flatten(right) && throw("Ellipsis found on right side but not on left side: $(left --> right)")
-        return :($(left --> right))
+        return left, right
     end
     new_left = replace_ellipses_left(left, N)
     new_right = replace_ellipses_right(left, right, N)

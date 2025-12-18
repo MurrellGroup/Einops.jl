@@ -37,7 +37,7 @@ julia> z == reshape(permutedims(dropdims(mean(reshape(x, 64,32,5,7), dims=4), di
 true
 ```
 """
-@generated function Base.reduce(f::Function, x::AbstractArray{<:Any,N}, ::ArrowPattern{L,R}; context...) where {N,L,R}
+@generated function reduce(f::Function, x::AbstractArray{<:Any,N}, ::ArrowPattern{L,R}; context...) where {N,L,R}
     left, right = replace_ellipses(L, R, N)
     left, extra_context = remove_anonymous_dims(left)
     left_names, right_names = extract(Symbol, left), extract(Symbol, right)
@@ -47,7 +47,8 @@ true
     permutation = get_permutation(intersect(left_names, right_names), right_names)
     shape_out = get_shape_out(right)
     quote
-        $(isempty(extra_context) || :(context = pairs(merge(NamedTuple(context), $extra_context))))
+        context = NamedTuple(context)
+        $(isempty(extra_context) || :(context = merge(context, $extra_context)))
         $(isnothing(shape_in) || :(x = reshape(x, $shape_in)))
         $(isempty(dims) || :(x = dropdims(f(x; dims=$dims); dims=$dims)))
         $(permutation === ntuple(identity, length(permutation)) || :(x = permutedims(x, $permutation)))
@@ -56,5 +57,5 @@ true
     end
 end
 
-Base.reduce(f::Function, x::AbstractArray{<:AbstractArray}, pattern::ArrowPattern; context...) = reduce(f, stack(x), pattern; context...)
-Base.reduce(f::Function, x, pattern::ArrowPattern; context...) = reduce(f, stack(x), pattern; context...)
+reduce(f::Function, x::AbstractArray{<:AbstractArray}, pattern::ArrowPattern; context...) = reduce(f, stack(x), pattern; context...)
+reduce(f::Function, x, pattern::ArrowPattern; context...) = reduce(f, stack(x), pattern; context...)

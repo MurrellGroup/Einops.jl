@@ -50,6 +50,10 @@ end
 
 Compute the einsum operation specified by the pattern.
 
+This function supports rearrange-style grouped axes, and can in some cases
+automatically resolve size ambiguities.
+Note that upstream Python `einops.einsum` does not yet do this (as of 0.8.1).
+
 !!! note
     This function is not type stable.
 
