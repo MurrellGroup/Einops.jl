@@ -56,3 +56,12 @@ function get_shape_out(right)
     end
     return new_shape
 end
+
+function get_dropdims_shape(N::Int, dims::Tuple{Vararg{Int}})
+    new_shape = :()
+    ops = new_shape.args
+    for i in 1:N
+        push!(ops, i in dims ? :($Squeeze()) : :($Keep()))
+    end
+    return new_shape
+end

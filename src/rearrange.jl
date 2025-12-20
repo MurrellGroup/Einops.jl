@@ -29,7 +29,6 @@ true
 ```
 """
 @generated function rearrange(x::AbstractArray{<:Any,N}, ::ArrowPattern{L,R}; context...) where {N,L,R}
-    #x, context = typeof.((x, context))
     left, right = replace_ellipses(L, R, N)
     shape_in = get_shape_in(N, left, pairs_type_to_names(context))
     permutation = get_permutation(extract(Symbol, left), extract(Symbol, right))

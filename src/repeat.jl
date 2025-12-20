@@ -1,11 +1,16 @@
 function reshape_pre_repeat(N, positions)
-    new_shape = Expr(:tuple, [:(size(x, $i)) for i in 1:N]...)
-    sizes = new_shape.args
+    new_shape = :()
+    ops = new_shape.args
+    for _ in 1:N
+        push!(ops, :($Keep()))
+    end
     for i in sort(collect(positions))
-        if i > length(sizes)
-            append!(sizes, ones(Int, i - length(sizes)))
+        if i > length(ops)
+            for _ in 1:(i - length(ops))
+                push!(ops, :($Unsqueeze()))
+            end
         else
-            insert!(sizes, i, 1)
+            insert!(ops, i, :($Unsqueeze()))
         end
     end
     return new_shape
@@ -54,7 +59,7 @@ true
         context = NamedTuple(context)
         $(isempty(extra_context) || :(context = merge(context, $extra_context)))
         $(isnothing(shape_in) || :(x = reshape(x, $shape_in)))
-        $(permutation === ntuple(identity, length(permutation)) || :(x = permutedims(x, $permutation)))
+        $(permutation === ntuple(identity, length(permutation)) || :(x = $(Rewrap.Permute(permutation))(x)))
         $(all(==(1), repeat_dims) || :(
             x = reshape(x, $(reshape_pre_repeat(length(left_names), positions)));
             x = Repeat(($(repeat_dims...),))(x)

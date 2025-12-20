@@ -45,13 +45,14 @@ true
     dims = get_mapping(left_names, setdiff(left_names, right_names))
     shape_in = get_shape_in(N, left, (pairs_type_to_names(context)..., keys(extra_context)...))
     permutation = get_permutation(intersect(left_names, right_names), right_names)
+    drop_shape = get_dropdims_shape(length(left_names), dims)
     shape_out = get_shape_out(right)
     quote
         context = NamedTuple(context)
         $(isempty(extra_context) || :(context = merge(context, $extra_context)))
         $(isnothing(shape_in) || :(x = reshape(x, $shape_in)))
-        $(isempty(dims) || :(x = dropdims(f(x; dims=$dims); dims=$dims)))
-        $(permutation === ntuple(identity, length(permutation)) || :(x = permutedims(x, $permutation)))
+        $(isempty(dims) || :(x = reshape(f(x; dims=$dims), $drop_shape)))
+        $(permutation === ntuple(identity, length(permutation)) || :(x = $(Rewrap.Permute(permutation))(x)))
         $(isnothing(shape_out) || :(x = reshape(x, $shape_out)))
         return x
     end
