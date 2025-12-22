@@ -10,9 +10,6 @@ EllipsisNotation = "da5c29d0-fa7d-589e-88eb-ea29b0a81949"
 OMEinsum = "ebe7aa44-baf0-506c-a96f-8464559b3922"
 TupleTools = "9d95972d-f1c8-5527-a6e0-b4b365fa01f6"
 
-[sources]
-Rewrap = {path = "/home/anton/.julia/dev/Rewrap"}
-
 [compat]
 ChainRulesCore = "1.7"
 EllipsisNotation = "1"
