@@ -1,6 +1,6 @@
 name = "Einops"
 uuid = "e3ce28c8-8bfb-4704-8add-e3e7f14b55c9"
-version = "0.1.12"
+version = "0.2.0"
 authors = ["Anton Oresten <antonoresten@gmail.com> and contributors"]
 
 [deps]
@@ -15,4 +15,4 @@ ChainRulesCore = "1.7"
 EllipsisNotation = "1"
 OMEinsum = "0.8, 0.9"
 TupleTools = "1"
-julia = "1.9"
+julia = "1.10"
