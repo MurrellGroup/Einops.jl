@@ -34,13 +34,13 @@ true
     permutation = get_permutation(extract(Symbol, left), extract(Symbol, right))
     shape_out = get_shape_out(right)
     quote
+        context = NamedTuple(context)
         $(isnothing(shape_in) || :(x = reshape(x, $shape_in)))
-        $(permutation === ntuple(identity, length(permutation)) || :(x = permutedims(x, $permutation)))
+        $(permutation === ntuple(identity, length(permutation)) || :(x = $(Rewrap.Permute(permutation))(x)))
         $(isnothing(shape_out) || :(x = reshape(x, $shape_out)))
         return x
     end
 end
-
 rearrange(x::AbstractArray{<:AbstractArray}, pattern::ArrowPattern; context...) = rearrange(stack(x), pattern; context...)
 rearrange(x, pattern::ArrowPattern; context...) = rearrange(stack(x), pattern; context...)
 
@@ -48,6 +48,7 @@ rearrange(x, pattern::ArrowPattern; context...) = rearrange(stack(x), pattern; c
     left = replace_ellipses_left(L, N)
     shape_in = get_shape_in(N, left, pairs_type_to_names(context); allow_repeats=true)
     quote
+        context = NamedTuple(context)
         $(isnothing(shape_in) || :(x = reshape(x, $shape_in)))
         return x
     end
@@ -57,6 +58,7 @@ end
     right = replace_ellipses_collapse(R, N)
     shape_out = get_shape_out(right)
     quote
+        context = NamedTuple(context)
         $(isnothing(shape_out) || :(x = reshape(x, $shape_out)))
         return x
     end

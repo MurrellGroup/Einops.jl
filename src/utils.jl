@@ -1,3 +1,5 @@
+using Rewrap: Keep, Merge, Split, Resqueeze, Squeeze, Unsqueeze, Repeat
+
 pairs_type_to_names(::Type{<:Base.Pairs{Symbol,<:Any,<:Any,<:NamedTuple{names}}}) where names = names
 
 function get_shape_in(N, left, context_names; allow_repeats=false)
@@ -5,21 +7,20 @@ function get_shape_in(N, left, context_names; allow_repeats=false)
     allunique(extract(Symbol, left)) || allow_repeats || throw(ArgumentError("Left names $(left) are not unique"))
     left isa Tuple{Vararg{Symbol}} && return nothing
     new_shape = :()
-    sizes = new_shape.args
+    ops = new_shape.args
     for (i, input_dim) in enumerate(left)
         if input_dim isa Int
             input_dim == 1 || throw(ArgumentError("Singleton dimension size is not 1: $input_dim"))
-            continue
+            push!(ops, :($Squeeze()))
         elseif input_dim isa Symbol
-            push!(sizes, :(size(x, $i)))
+            push!(ops, :($Keep()))
         elseif input_dim isa Tuple{Symbol}
-            push!(sizes, :(size(x, $i)))
+            push!(ops, :($Keep()))
         elseif input_dim isa Tuple{Vararg{Symbol}}
             known_size = filter(in(context_names), input_dim)
             length(input_dim) - length(known_size) <= 1 || throw(ArgumentError("Unknown dimension sizes: $(filter(∉(context_names), input_dim))"))
-            unknown_size = Expr(:call, :*, (:(context[$(QuoteNode(name))]) for name in known_size)...)
-            new_dim_size = Tuple(name in known_size ? :(context[$(QuoteNode(name))]) : :(size(x, $i) ÷ $unknown_size) for name in input_dim)
-            push!(sizes, new_dim_size...)
+            sizes_tuple = Expr(:tuple, (name in known_size ? :(getfield(context, $(QuoteNode(name)))) : :(:) for name in input_dim)...)
+            push!(ops, :($Split(1, $sizes_tuple)))
         else
             throw(ArgumentError("Invalid input dimension: $input_dim"))
         end
@@ -43,17 +44,24 @@ function get_shape_out(right)
     for dim in right
         if dim isa Int
             dim == 1 || throw(ArgumentError("Singleton dimension size is not 1: $dim"))
-            push!(sizes, dim)
+            push!(sizes, :($Unsqueeze()))
         elseif dim isa Symbol
-            push!(sizes, :(size(x, $i)))
-            i += 1
-        elseif dim isa Tuple{Symbol}
-            push!(sizes, :(size(x, $i)))
+            push!(sizes, :($Keep()))
             i += 1
         elseif dim isa Tuple{Vararg{Symbol}}
-            push!(sizes, isempty(dim) ? 1 : Expr(:call, :*, (:(size(x, $i)) for i in i:i+length(dim)-1)...))
-            i += length(dim)
+            N = length(dim)
+            push!(sizes, :($Merge($N)))
+            i += N
         end
+    end
+    return new_shape
+end
+
+function get_dropdims_shape(N::Int, dims::Tuple{Vararg{Int}})
+    new_shape = :()
+    ops = new_shape.args
+    for i in 1:N
+        push!(ops, i in dims ? :($Squeeze()) : :($Keep()))
     end
     return new_shape
 end

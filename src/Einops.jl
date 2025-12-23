@@ -1,9 +1,13 @@
 module Einops
 
+import Base: reduce, repeat
+
 using EllipsisNotation; export ..
 using TupleTools: flatten, insertat
 using ChainRulesCore: @ignore_derivatives
 using OMEinsum: OMEinsum
+using Rewrap
+using Rewrap: Permute, Reduce, Repeat
 
 include("utils.jl")
 
