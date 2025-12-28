@@ -57,6 +57,3 @@ true
         return x
     end
 end
-
-reduce(f::Function, x::AbstractArray{<:AbstractArray}, pattern::ArrowPattern; context...) = reduce(f, stack(x), pattern; context...)
-reduce(f::Function, x, pattern::ArrowPattern; context...) = reduce(f, stack(x), pattern; context...)
