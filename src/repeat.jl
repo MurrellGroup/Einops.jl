@@ -68,6 +68,3 @@ true
         return x
     end
 end
-
-repeat(x::AbstractArray{<:AbstractArray}, pattern::ArrowPattern; context...) = repeat(stack(x), pattern; context...)
-repeat(x, pattern::ArrowPattern; context...) = repeat(stack(x), pattern; context...)
