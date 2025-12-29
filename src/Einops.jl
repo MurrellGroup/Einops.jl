@@ -1,6 +1,6 @@
 module Einops
 
-import Base: reduce, repeat
+import Base: reshape, reduce, repeat
 
 using EllipsisNotation; export ..
 using TupleTools: flatten, insertat
@@ -20,6 +20,9 @@ export parse_shape
 
 include("rearrange.jl")
 export rearrange
+
+include("reshape.jl")
+export reshape
 
 include("reduce.jl")
 export reduce
