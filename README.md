@@ -25,6 +25,8 @@ Einops uses patterns with explicitly named dimensions, which can be constructed 
 
 The snippets below show identical transformations expressed first with Einops (one readable line) and then with "hand-rolled" Julia primitives. Notice how Einops collapses multiple e.g. `reshape` / `permutedims` / `dropdims` / `repeat` calls into a single, declarative statement, while still expanding to such primitives under the hood and avoiding no-ops.
 
+This package uses [Rewrap.jl](https://github.com/MurrellGroup/Rewrap.jl) to avoid many cases of double-wrapping when the input is not dense.
+
 <table>
 <thead>
 <tr>
