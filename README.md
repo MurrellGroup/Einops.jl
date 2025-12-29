@@ -17,18 +17,13 @@
 
 </div>
 
-Einops.jl brings the readable and concise tensor operations of [einops](https://einops.rocks) to Julia, expanding to primitives like `reshape`, `permutedims`, and `repeat`, while avoiding double-wrappers when possible (see [Rewrap.jl](https://github.com/MurrellGroup/Rewrap.jl)).
-
-## Install
-
-```julia
-using Pkg
-Pkg.add("Einops")
-```
+Einops.jl brings the readable and concise tensor operations of [einops](https://einops.rocks) to Julia, expanding to primitives like `reshape`, `permutedims`, and `repeat`, while avoiding double-wrappers when possible using [Rewrap.jl](https://github.com/MurrellGroup/Rewrap.jl) and remaining type stable.
 
 ## Quickstart
 
 ```julia
+using Pkg
+Pkg.add("Einops")
 using Einops
 
 x = rand(2, 3, 4)
