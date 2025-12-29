@@ -21,6 +21,12 @@ parse_shape
 rearrange
 ```
 
+## `reshape`
+
+```@docs
+reshape
+```
+
 ## `reduce`
 
 ```@docs

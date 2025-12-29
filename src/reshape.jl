@@ -4,7 +4,7 @@
 Reshape `x` according to the pattern `left --> right`.
 
 Unlike [`rearrange`](@ref), this does not permute dimensions - symbols must appear
-in the same order on both sides (after flattening nested tuples).
+in the same order on both sides.
 
 # Examples
 
