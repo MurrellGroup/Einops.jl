@@ -13,6 +13,7 @@ EINOPS_TEST_REACTANT && Pkg.add("Reactant")
 
     include("patterns.jl")
     include("parse_shape.jl")
+    include("reshape.jl")
     include("rearrange.jl")
     include("reduce.jl")
     include("repeat.jl")
