@@ -17,15 +17,27 @@
 
 </div>
 
-> Einops.jl brings the readable and concise tensor operations of [einops](https://einops.rocks) to Julia, reliably expanding to existing primitives like `reshape`, `permutedims`, and `repeat`.
+Einops.jl brings the readable and concise tensor operations of [einops](https://einops.rocks) to Julia, expanding to primitives like `reshape`, `permutedims`, and `repeat`, while avoiding double-wrappers when possible (see [Rewrap.jl](https://github.com/MurrellGroup/Rewrap.jl)).
+
+## Install
+
+```julia
+using Pkg
+Pkg.add("Einops")
+```
+
+## Quickstart
+
+```julia
+using Einops
+
+x = rand(2, 3, 4)
+y = rearrange(x, einops"a b c -> (a b) c")
+```
 
 ## Einops vs Base primitives
 
-Einops uses patterns with explicitly named dimensions, which can be constructed with the `einops` string macro, e.g. `einops"a b -> (b a)"` expands to the form `(:a, :b) --> ((:b, :a),)`, where `-->` is a custom operator that puts the left and right operands as type parameters of a special pattern type, allowing generated functions to compose clean expressions.
-
-The snippets below show identical transformations expressed first with Einops (one readable line) and then with "hand-rolled" Julia primitives. Notice how Einops collapses multiple e.g. `reshape` / `permutedims` / `dropdims` / `repeat` calls into a single, declarative statement, while still expanding to such primitives under the hood and avoiding no-ops.
-
-This package uses [Rewrap.jl](https://github.com/MurrellGroup/Rewrap.jl) to avoid many cases of double-wrapping when the input is not dense.
+The snippets below show identical transformations expressed first with a single Einops expression and then with "hand-rolled" Julia primitives. Notice how Einops collapses multiple e.g. `reshape` / `permutedims` / `dropdims` / `repeat` calls into a single, declarative statement, while still expanding to such primitives under the hood whilst avoiding no-ops and double-wrappers.
 
 <table>
 <thead>
@@ -192,6 +204,10 @@ reshape(
 
 </tbody>
 </table>
+
+## Notes
+
+Einops exposes the `einops` string macro to construct patterns, e.g. `einops"a b -> (b a)"`, which expands to the form `(:a, :b) --> ((:b, :a),)`, where `-->` is a custom operator that puts the left and right operands as type parameters of a special pattern type, allowing generated functions to compose clean expressions.
 
 ## Contributing
 
