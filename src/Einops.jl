@@ -36,4 +36,6 @@ export einsum
 include("pack_unpack.jl")
 export pack, unpack
 
+include("String.jl")
+
 end
