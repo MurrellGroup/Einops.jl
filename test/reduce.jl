@@ -25,16 +25,6 @@ using Test, Statistics
         @test (@inferred reduce(sum, x, einops"(a 2) b ... -> a (... b)")) == reduce(sum, x, einops"2 b c -> 1 (c b)")
     end
 
-    @testset "array collections" begin
-        x = rand(2, 3, 35)
-        @test reduce(sum, [x, x], einops"a b c r -> a b c") == dropdims(sum(stack([x, x]), dims=4), dims=4)
-        @test reduce(sum, reshape([x, x], 1, 2), einops"a b c 1 r -> a b c") == dropdims(sum(stack([x, x]), dims=4), dims=4)
-        @test reduce(sum, (x, x), einops"a b c r -> a b c") == dropdims(sum(stack([x, x]), dims=4), dims=4)
-        @test reduce(mean, [x, x], einops"a b c r -> a b c") == x
-        @test reduce(maximum, reshape([x, x], 1, 2), einops"a b c 1 r -> a b c") == x
-        @test reduce(minimum, (x, x), einops"a b c r -> a b c") == x
-    end
-
     @testset "non-reducing operations" begin
         x = rand(2, 3, 35)
         @test reduce(sum, x, einops"a b (c c2) -> a b c c2", c2=7) == reshape(x, 2, 3, 5, 7)

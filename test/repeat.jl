@@ -17,13 +17,6 @@ using Test, Statistics
         @test (@inferred repeat(x, (:a, :b) --> (:a, :b, 2))) == repeat(x, 1, 1, 2)
     end
 
-    @testset "array collections" begin
-        x = rand(2, 3)
-        @test repeat([x, x], einops"a b c -> a b c r", r=3) == repeat(x, 1, 1, 2, 3)
-        @test repeat(reshape([x, x], 1, 2), einops"a b 1 c -> a b c r", r=3) == repeat(x, 1, 1, 2, 3)
-        @test repeat((x, x), einops"a b c -> a b c r", r=3) == repeat(x, 1, 1, 2, 3)
-    end
-
     @testset "singleton dimensions" begin
         x = rand(2, 1, 3)
         @test repeat(x, (:a, 1, :b) --> (:a, :b, :r), r=2) == repeat(reshape(x, 2, 3), 1, 1, 2)

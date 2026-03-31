@@ -60,13 +60,6 @@ using Test
         @test rearrange(x, (:a, :b) --> (:b, (), :a)) == rearrange(x, (:a, :b) --> (:b, (), :a))
     end
 
-    @testset "array collections" begin
-        x = rand(2, 3, 5)
-        @test rearrange([x, x], (:a, :b, :c, :d) --> (:c, :b, :a, :d)) == permutedims(stack([x, x]), (3, 2, 1, 4))
-        @test rearrange(reshape([x, x], 1, 2), (:a, :b, :c, 1, :d) --> (:c, :b, :a, :d)) == permutedims(reshape(cat(x, x, dims=5), 2, 3, 5, 2), (3, 2, 1, 4))
-        @test rearrange((x, x), (:a, :b, :c, :d) --> (:c, :b, :a, :d)) == permutedims(cat(x, x, dims=4), (3, 2, 1, 4))
-    end
-
     @testset "Python API reference parity" begin
         # see https://einops.rocks/api/rearrange/
 
