@@ -43,6 +43,8 @@ using Test
         # splat `; context...`
         context = (; a=2)
         @test @rearrange(x, "(a b) c -> a b c"; context...) == ref
+        # property shorthand `; obj.a`  ==>  `a = obj.a`
+        @test @rearrange(x, "(a b) c -> a b c"; context.a) == ref
     end
 
     @testset "error handling" begin

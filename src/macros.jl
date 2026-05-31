@@ -36,13 +36,15 @@ function einops_macro_call(f::Symbol, args)
 end
 
 # Normalize a single keyword entry for forwarding into the generated call's
-# `:parameters` block. The parser only ever emits one of three forms here:
-#   the `; k` shorthand (a bare `Symbol`), a `; kws...` splat (`:...`), or an
-#   explicit `k = v` (`:kw` from `; k=v`, or `:(=)` from a trailing `, k=v`).
+# `:parameters` block. The parser emits one of four forms here:
+#   the `; k` shorthand (a bare `Symbol`), a `; kws...` splat (`:...`), the
+#   `; obj.k` property shorthand (`:.`, naming the keyword after the field), or
+#   an explicit `k = v` (`:kw` from `; k=v`, or `:(=)` from a trailing `, k=v`).
 # Only values are escaped; key names are not.
 function _to_kw(kw)
     kw isa Symbol && return Expr(:kw, kw, esc(kw))          # `; k`  ==>  `k = k`
     Meta.isexpr(kw, :...) && return Expr(:..., esc(kw.args[1]))  # `; kws...`
+    Meta.isexpr(kw, :.) && return Expr(:kw, kw.args[2].value, esc(kw))  # `; obj.k`  ==>  `k = obj.k`
     return Expr(:kw, kw.args[1], esc(kw.args[2]))           # `k = v`
 end
 
