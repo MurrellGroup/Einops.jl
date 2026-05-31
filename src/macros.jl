@@ -36,19 +36,14 @@ function einops_macro_call(f::Symbol, args)
 end
 
 # Normalize a single keyword entry for forwarding into the generated call's
-# `:parameters` block. Entries can take any of the standard Julia forms:
-#   `k = v` / `k => v` (`:(=)` or `:kw`), the `; k` shorthand (a bare `Symbol`),
-#   or a `; kws...` splat (`:...`). Only values are escaped; key names are not.
+# `:parameters` block. The parser only ever emits one of three forms here:
+#   the `; k` shorthand (a bare `Symbol`), a `; kws...` splat (`:...`), or an
+#   explicit `k = v` (`:kw` from `; k=v`, or `:(=)` from a trailing `, k=v`).
+# Only values are escaped; key names are not.
 function _to_kw(kw)
-    if kw isa Symbol
-        return Expr(:kw, kw, esc(kw))           # `; k`  ==>  `k = k`
-    elseif Meta.isexpr(kw, :...)
-        return Expr(:..., esc(kw.args[1]))       # `; kws...`
-    elseif Meta.isexpr(kw, (:kw, :(=)), 2)
-        return Expr(:kw, kw.args[1], esc(kw.args[2]))
-    else
-        return esc(kw)
-    end
+    kw isa Symbol && return Expr(:kw, kw, esc(kw))          # `; k`  ==>  `k = k`
+    Meta.isexpr(kw, :...) && return Expr(:..., esc(kw.args[1]))  # `; kws...`
+    return Expr(:kw, kw.args[1], esc(kw.args[2]))           # `k = v`
 end
 
 """
