@@ -3,7 +3,7 @@
 ## Patterns
 
 ```@docs
-ArrowPattern
+Einops.ArrowPattern
 -->
 @einops_str
 ..
@@ -19,30 +19,35 @@ parse_shape
 
 ```@docs
 rearrange
+Einops.@rearrange
 ```
 
 ## `reshape`
 
 ```@docs
 reshape
+Einops.@reshape
 ```
 
 ## `reduce`
 
 ```@docs
 reduce
+Einops.@reduce
 ```
 
 ## `repeat`
 
 ```@docs
 repeat
+Einops.@repeat
 ```
 
 ## `einsum`
 
 ```@docs
 einsum
+Einops.@einsum
 ```
 
 ## `pack` and `unpack`

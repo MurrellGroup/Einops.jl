@@ -1,5 +1,7 @@
 module Einops
 
+using Republic: @public
+
 import Base: reshape, reduce, repeat
 
 using EllipsisNotation; export ..
@@ -12,8 +14,8 @@ using Rewrap: Permute, Reduce, Repeat
 include("utils.jl")
 
 include("patterns/patterns.jl")
-export ArrowPattern, -->
-export @einops_str
+@public ArrowPattern
+export -->, @einops_str
 
 include("parse_shape.jl")
 export parse_shape
@@ -35,5 +37,8 @@ export einsum
 
 include("pack_unpack.jl")
 export pack, unpack
+
+include("macros.jl")
+@public @rearrange, @reshape, @reduce, @repeat, @einsum
 
 end

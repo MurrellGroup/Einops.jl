@@ -1,4 +1,5 @@
 [deps]
+Einops = "e3ce28c8-8bfb-4704-8add-e3e7f14b55c9"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"

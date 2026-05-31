@@ -4,11 +4,11 @@ using Test
 @testset "Pattern System" begin
     @testset "Core Types" begin
         @testset "ArrowPattern construction" begin
-            @test (() --> ()) isa ArrowPattern
-            @test (() --> :a) isa ArrowPattern
-            @test (:a --> ()) isa ArrowPattern
-            @test (:a --> :a) isa ArrowPattern
-            @test ((:a, ..) --> (:a,)) isa ArrowPattern
+            @test (() --> ()) isa Einops.ArrowPattern
+            @test (() --> :a) isa Einops.ArrowPattern
+            @test (:a --> ()) isa Einops.ArrowPattern
+            @test (:a --> :a) isa Einops.ArrowPattern
+            @test ((:a, ..) --> (:a,)) isa Einops.ArrowPattern
         end
 
         @testset "ArrowPattern interface" begin
