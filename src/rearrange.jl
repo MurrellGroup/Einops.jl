@@ -41,8 +41,6 @@ true
         return x
     end
 end
-rearrange(x::AbstractArray{<:AbstractArray}, pattern::ArrowPattern; context...) = rearrange(stack(x), pattern; context...)
-rearrange(x, pattern::ArrowPattern; context...) = rearrange(stack(x), pattern; context...)
 
 @generated function expand(x::AbstractArray{<:Any,N}, ::Val{L}; context...) where {N,L}
     left = replace_ellipses_left(L, N)
