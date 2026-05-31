@@ -17,11 +17,11 @@ using Test, Statistics
         @test (@inferred repeat(x, (:a, :b) --> (:a, :b, 2))) == repeat(x, 1, 1, 2)
     end
 
-    @testset "array collections" begin
+    @testset "no implicit stacking of collections" begin
+        # As of v0.2.0, collections of arrays are no longer auto-stacked.
         x = rand(2, 3)
-        @test repeat([x, x], einops"a b c -> a b c r", r=3) == repeat(x, 1, 1, 2, 3)
-        @test repeat(reshape([x, x], 1, 2), einops"a b 1 c -> a b c r", r=3) == repeat(x, 1, 1, 2, 3)
-        @test repeat((x, x), einops"a b c -> a b c r", r=3) == repeat(x, 1, 1, 2, 3)
+        @test repeat(stack([x, x]), einops"a b c -> a b c r", r=3) == repeat(x, 1, 1, 2, 3)
+        @test_throws MethodError repeat((x, x), einops"a b c -> a b c r", r=3)
     end
 
     @testset "singleton dimensions" begin

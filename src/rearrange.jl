@@ -1,6 +1,5 @@
 """
     rearrange(array::AbstractArray, left --> right; context...)
-    rearrange(arrays, left --> right; context...)
 
 Rearrange the axes of `x` according to the pattern specified by `left --> right`.
 
@@ -41,8 +40,6 @@ true
         return x
     end
 end
-rearrange(x::AbstractArray{<:AbstractArray}, pattern::ArrowPattern; context...) = rearrange(stack(x), pattern; context...)
-rearrange(x, pattern::ArrowPattern; context...) = rearrange(stack(x), pattern; context...)
 
 @generated function expand(x::AbstractArray{<:Any,N}, ::Val{L}; context...) where {N,L}
     left = replace_ellipses_left(L, N)

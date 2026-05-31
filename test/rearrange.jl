@@ -60,11 +60,19 @@ using Test
         @test rearrange(x, (:a, :b) --> (:b, (), :a)) == rearrange(x, (:a, :b) --> (:b, (), :a))
     end
 
-    @testset "array collections" begin
+    @testset "no implicit stacking of collections" begin
+        # As of v0.2.0, collections of arrays are no longer auto-stacked;
+        # callers must `stack` explicitly.
         x = rand(2, 3, 5)
-        @test rearrange([x, x], (:a, :b, :c, :d) --> (:c, :b, :a, :d)) == permutedims(stack([x, x]), (3, 2, 1, 4))
-        @test rearrange(reshape([x, x], 1, 2), (:a, :b, :c, 1, :d) --> (:c, :b, :a, :d)) == permutedims(reshape(cat(x, x, dims=5), 2, 3, 5, 2), (3, 2, 1, 4))
-        @test rearrange((x, x), (:a, :b, :c, :d) --> (:c, :b, :a, :d)) == permutedims(cat(x, x, dims=4), (3, 2, 1, 4))
+        @test rearrange(stack([x, x]), (:a, :b, :c, :d) --> (:c, :b, :a, :d)) == permutedims(stack([x, x]), (3, 2, 1, 4))
+
+        # A tuple of arrays is not an AbstractArray: no matching method.
+        @test_throws MethodError rearrange((x, x), (:a, :b, :c, :d) --> (:c, :b, :a, :d))
+
+        # A Vector whose elements are arrays is treated element-wise as a
+        # 1-dimensional array, not stacked.
+        v = [x, x]
+        @test rearrange(v, (:a,) --> (:a,)) === v
     end
 
     @testset "Python API reference parity" begin
