@@ -32,8 +32,17 @@ using Test
 
     @testset "context keyword" begin
         x = rand(6, 5)
-        @test @rearrange(x, "(a b) c -> a b c", a=2) == rearrange(x, einops"(a b) c -> a b c", a=2)
-        @test @rearrange(x, "(a b) c -> a b c"; a=2) == rearrange(x, einops"(a b) c -> a b c"; a=2)
+        ref = rearrange(x, einops"(a b) c -> a b c"; a=2)
+        # comma form `, a=2`
+        @test @rearrange(x, "(a b) c -> a b c", a=2) == ref
+        # explicit `; a=2`
+        @test @rearrange(x, "(a b) c -> a b c"; a=2) == ref
+        # bare-symbol shorthand `; a`
+        a = 2
+        @test @rearrange(x, "(a b) c -> a b c"; a) == ref
+        # splat `; context...`
+        context = (; a=2)
+        @test @rearrange(x, "(a b) c -> a b c"; context...) == ref
     end
 
     @testset "error handling" begin
