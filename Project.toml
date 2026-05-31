@@ -1,12 +1,16 @@
 name = "Einops"
 uuid = "e3ce28c8-8bfb-4704-8add-e3e7f14b55c9"
 version = "0.1.14"
-authors = ["Anton Oresten <antonoresten@gmail.com> and contributors"]
+authors = ["Anton Oresten <antonoresten@gmail.com>"]
+
+[workspace]
+projects = ["test", "docs"]
 
 [deps]
 ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
 EllipsisNotation = "da5c29d0-fa7d-589e-88eb-ea29b0a81949"
 OMEinsum = "ebe7aa44-baf0-506c-a96f-8464559b3922"
+Republic = "27243419-9dde-4721-b67c-fd63626fea7f"
 Rewrap = "e37f04ce-ca06-4a96-b09f-ea39bec02b08"
 TupleTools = "9d95972d-f1c8-5527-a6e0-b4b365fa01f6"
 
@@ -14,6 +18,7 @@ TupleTools = "9d95972d-f1c8-5527-a6e0-b4b365fa01f6"
 ChainRulesCore = "1.7"
 EllipsisNotation = "1"
 OMEinsum = "0.8, 0.9"
+Republic = "2.2.0"
 Rewrap = "0.1.1"
 TupleTools = "1"
 julia = "1.9"

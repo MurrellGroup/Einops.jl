@@ -19,30 +19,35 @@ parse_shape
 
 ```@docs
 rearrange
+@rearrange
 ```
 
 ## `reshape`
 
 ```@docs
 reshape
+@reshape
 ```
 
 ## `reduce`
 
 ```@docs
 reduce
+@reduce
 ```
 
 ## `repeat`
 
 ```@docs
 repeat
+@repeat
 ```
 
 ## `einsum`
 
 ```@docs
 einsum
+@einsum
 ```
 
 ## `pack` and `unpack`

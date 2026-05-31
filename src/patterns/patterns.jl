@@ -55,13 +55,13 @@ julia> pattern1 = (:a, :b, :c) --> (:c, (:b, :a)) # nested tuple
 (:a, :b, :c) --> (:c, (:b, :a))
 
 julia> typeof(pattern1)
-ArrowPattern{(:a, :b, :c), (:c, (:b, :a))}
+Einops.ArrowPattern{(:a, :b, :c), (:c, (:b, :a))}
 
 julia> pattern2 = :a --> (1, :a) # single-element autoconversion
 (:a,) --> (1, :a)
 
 julia> typeof(pattern2)
-ArrowPattern{(:a,), (1, :a)}
+Einops.ArrowPattern{(:a,), (1, :a)}
 
 julia> (:a, ..) --> :a # exported ellipsis notation
 (:a, EllipsisNotation.Ellipsis()) --> (:a,)
