@@ -3,7 +3,7 @@
 ## Patterns
 
 ```@docs
-ArrowPattern
+Einops.ArrowPattern
 -->
 @einops_str
 ..
