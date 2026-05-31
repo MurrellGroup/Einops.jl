@@ -43,7 +43,8 @@ julia> z == reshape(repeat(x, 1,1,2), 2,6)
 true
 ```
 """
-@generated function repeat(x::AbstractArray{<:Any,N}, ::ArrowPattern{L,R}; context...) where {N,L,R}
+@generated function repeat(x, ::ArrowPattern{L,R}; context...) where {L,R}
+    N = ndims(x)
     left, right = replace_ellipses(L, R, N)
     right, extra_context = remove_anonymous_dims(right)
     left_names, right_names = extract(Symbol, left), extract(Symbol, right)
@@ -58,13 +59,19 @@ true
     quote
         context = NamedTuple(context)
         $(isempty(extra_context) || :(context = merge(context, $extra_context)))
-        $(isnothing(shape_in) || :(x = reshape(x, $shape_in)))
+        $(isnothing(shape_in) || :(x = Rewrap.reshape(x, $shape_in)))
         $(permutation === ntuple(identity, length(permutation)) || :(x = $(Rewrap.Permute(permutation))(x)))
         $(all(==(1), repeat_dims) || :(
-            x = reshape(x, $(reshape_pre_repeat(length(left_names), positions)));
+            x = Rewrap.reshape(x, $(reshape_pre_repeat(length(left_names), positions)));
             x = Repeat(($(repeat_dims...),))(x)
         ))
-        $(isnothing(shape_out) || :(x = reshape(x, $shape_out)))
+        $(isnothing(shape_out) || :(x = Rewrap.reshape(x, $shape_out)))
         return x
     end
 end
+
+# Resolve ambiguity with `Base.repeat(::AbstractArray, counts...)`: the untyped
+# method above is more specific in the pattern argument, Base's is more specific
+# in the array argument, so an explicit method is needed for `AbstractArray`s.
+repeat(x::AbstractArray, pattern::ArrowPattern; context...) =
+    invoke(repeat, Tuple{Any,ArrowPattern}, x, pattern; context...)

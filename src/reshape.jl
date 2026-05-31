@@ -20,7 +20,8 @@ julia> reshape(x, (:a, :b, :c) --> ((:a, :b), :c)) |> size
 (6, 4)
 ```
 """
-@generated function Base.reshape(x::AbstractArray{<:Any,N}, ::ArrowPattern{L,R}; context...) where {N,L,R}
+@generated function Base.reshape(x, ::ArrowPattern{L,R}; context...) where {L,R}
+    N = ndims(x)
     left, right = replace_ellipses(L, R, N)
     left_symbols = extract(Symbol, left)
     right_symbols = extract(Symbol, right)
@@ -29,8 +30,8 @@ julia> reshape(x, (:a, :b, :c) --> ((:a, :b), :c)) |> size
     shape_out = get_shape_out(right)
     quote
         context = NamedTuple(context)
-        $(isnothing(shape_in) || :(x = reshape(x, $shape_in)))
-        $(isnothing(shape_out) || :(x = reshape(x, $shape_out)))
+        $(isnothing(shape_in) || :(x = Rewrap.reshape(x, $shape_in)))
+        $(isnothing(shape_out) || :(x = Rewrap.reshape(x, $shape_out)))
         return x
     end
 end

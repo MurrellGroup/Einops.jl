@@ -83,7 +83,7 @@ function unpack(packed_array::AbstractArray{<:Any,N}, packed_shapes, pattern::Pa
     inds = Iterators.accumulate(+, Iterators.map(prod, packed_shapes))
     unpacked_arrays = map(Iterators.flatten((0, inds)), inds, packed_shapes) do i, j, ps
         unpacked_array = selectdim(packed_array, find_wildcard(pattern), i+1:j)
-        return collect(reshape(unpacked_array, splice(size(unpacked_array), find_wildcard(pattern), ps)))
+        return copy(reshape(unpacked_array, splice(size(unpacked_array), find_wildcard(pattern), ps)))
     end
     return unpacked_arrays
 end

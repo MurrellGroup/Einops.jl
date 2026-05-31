@@ -37,7 +37,8 @@ julia> z == reshape(permutedims(dropdims(mean(reshape(x, 64,32,5,7), dims=4), di
 true
 ```
 """
-@generated function reduce(f::Function, x::AbstractArray{<:Any,N}, ::ArrowPattern{L,R}; context...) where {N,L,R}
+@generated function reduce(f::Function, x, ::ArrowPattern{L,R}; context...) where {L,R}
+    N = ndims(x)
     left, right = replace_ellipses(L, R, N)
     left, extra_context = remove_anonymous_dims(left)
     left_names, right_names = extract(Symbol, left), extract(Symbol, right)
@@ -50,10 +51,10 @@ true
     quote
         context = NamedTuple(context)
         $(isempty(extra_context) || :(context = merge(context, $extra_context)))
-        $(isnothing(shape_in) || :(x = reshape(x, $shape_in)))
-        $(isempty(dims) || :(x = reshape(f(x; dims=$dims), $drop_shape)))
+        $(isnothing(shape_in) || :(x = Rewrap.reshape(x, $shape_in)))
+        $(isempty(dims) || :(x = Rewrap.reshape(f(x; dims=$dims), $drop_shape)))
         $(permutation === ntuple(identity, length(permutation)) || :(x = $(Rewrap.Permute(permutation))(x)))
-        $(isnothing(shape_out) || :(x = reshape(x, $shape_out)))
+        $(isnothing(shape_out) || :(x = Rewrap.reshape(x, $shape_out)))
         return x
     end
 end
