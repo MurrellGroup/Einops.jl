@@ -59,13 +59,13 @@ true
     quote
         context = NamedTuple(context)
         $(isempty(extra_context) || :(context = merge(context, $extra_context)))
-        $(isnothing(shape_in) || :(x = reshape(x, $shape_in)))
+        $(isnothing(shape_in) || :(x = Rewrap.reshape(x, $shape_in)))
         $(permutation === ntuple(identity, length(permutation)) || :(x = $(Rewrap.Permute(permutation))(x)))
         $(all(==(1), repeat_dims) || :(
-            x = reshape(x, $(reshape_pre_repeat(length(left_names), positions)));
+            x = Rewrap.reshape(x, $(reshape_pre_repeat(length(left_names), positions)));
             x = Repeat(($(repeat_dims...),))(x)
         ))
-        $(isnothing(shape_out) || :(x = reshape(x, $shape_out)))
+        $(isnothing(shape_out) || :(x = Rewrap.reshape(x, $shape_out)))
         return x
     end
 end

@@ -51,10 +51,10 @@ true
     quote
         context = NamedTuple(context)
         $(isempty(extra_context) || :(context = merge(context, $extra_context)))
-        $(isnothing(shape_in) || :(x = reshape(x, $shape_in)))
-        $(isempty(dims) || :(x = reshape(f(x; dims=$dims), $drop_shape)))
+        $(isnothing(shape_in) || :(x = Rewrap.reshape(x, $shape_in)))
+        $(isempty(dims) || :(x = Rewrap.reshape(f(x; dims=$dims), $drop_shape)))
         $(permutation === ntuple(identity, length(permutation)) || :(x = $(Rewrap.Permute(permutation))(x)))
-        $(isnothing(shape_out) || :(x = reshape(x, $shape_out)))
+        $(isnothing(shape_out) || :(x = Rewrap.reshape(x, $shape_out)))
         return x
     end
 end

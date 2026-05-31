@@ -35,9 +35,9 @@ true
     shape_out = get_shape_out(right)
     quote
         context = NamedTuple(context)
-        $(isnothing(shape_in) || :(x = reshape(x, $shape_in)))
+        $(isnothing(shape_in) || :(x = Rewrap.reshape(x, $shape_in)))
         $(permutation === ntuple(identity, length(permutation)) || :(x = $(Rewrap.Permute(permutation))(x)))
-        $(isnothing(shape_out) || :(x = reshape(x, $shape_out)))
+        $(isnothing(shape_out) || :(x = Rewrap.reshape(x, $shape_out)))
         return x
     end
 end
