@@ -1,6 +1,5 @@
 """
-    rearrange(array::AbstractArray, left --> right; context...)
-    rearrange(arrays, left --> right; context...)
+    rearrange(x, left --> right; context...)
 
 Rearrange the axes of `x` according to the pattern specified by `left --> right`.
 
@@ -28,7 +27,8 @@ julia> z == reshape(permutedims(x, (1,3,2)), 2,5*3)
 true
 ```
 """
-@generated function rearrange(x::AbstractArray{<:Any,N}, ::ArrowPattern{L,R}; context...) where {N,L,R}
+@generated function rearrange(x, ::ArrowPattern{L,R}; context...) where {L,R}
+    N = ndims(x)
     left, right = replace_ellipses(L, R, N)
     shape_in = get_shape_in(N, left, pairs_type_to_names(context))
     permutation = get_permutation(extract(Symbol, left), extract(Symbol, right))
@@ -42,7 +42,8 @@ true
     end
 end
 
-@generated function expand(x::AbstractArray{<:Any,N}, ::Val{L}; context...) where {N,L}
+@generated function expand(x, ::Val{L}; context...) where {L}
+    N = ndims(x)
     left = replace_ellipses_left(L, N)
     shape_in = get_shape_in(N, left, pairs_type_to_names(context); allow_repeats=true)
     quote
@@ -52,7 +53,8 @@ end
     end
 end
 
-@generated function collapse(x::AbstractArray{<:Any,N}, ::Val{R}; context...) where {N,R}
+@generated function collapse(x, ::Val{R}; context...) where {R}
+    N = ndims(x)
     right = replace_ellipses_collapse(R, N)
     shape_out = get_shape_out(right)
     quote

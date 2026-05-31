@@ -20,7 +20,8 @@ julia> reshape(x, (:a, :b, :c) --> ((:a, :b), :c)) |> size
 (6, 4)
 ```
 """
-@generated function Base.reshape(x::AbstractArray{<:Any,N}, ::ArrowPattern{L,R}; context...) where {N,L,R}
+@generated function Base.reshape(x, ::ArrowPattern{L,R}; context...) where {L,R}
+    N = ndims(x)
     left, right = replace_ellipses(L, R, N)
     left_symbols = extract(Symbol, left)
     right_symbols = extract(Symbol, right)

@@ -43,7 +43,8 @@ julia> z == reshape(repeat(x, 1,1,2), 2,6)
 true
 ```
 """
-@generated function repeat(x::AbstractArray{<:Any,N}, ::ArrowPattern{L,R}; context...) where {N,L,R}
+@generated function repeat(x, ::ArrowPattern{L,R}; context...) where {L,R}
+    N = ndims(x)
     left, right = replace_ellipses(L, R, N)
     right, extra_context = remove_anonymous_dims(right)
     left_names, right_names = extract(Symbol, left), extract(Symbol, right)
@@ -68,3 +69,9 @@ true
         return x
     end
 end
+
+# Resolve ambiguity with `Base.repeat(::AbstractArray, counts...)`: the untyped
+# method above is more specific in the pattern argument, Base's is more specific
+# in the array argument, so an explicit method is needed for `AbstractArray`s.
+repeat(x::AbstractArray, pattern::ArrowPattern; context...) =
+    invoke(repeat, Tuple{Any,ArrowPattern}, x, pattern; context...)

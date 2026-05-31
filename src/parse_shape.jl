@@ -29,7 +29,8 @@ julia> parse_shape(rand(2,2,4), Val((:a, :a, :b)))  # duplicate 'a' with same si
 (a = 2, b = 4)
 ```
 """
-@generated function parse_shape(x::AbstractArray{<:Any,N}, ::Val{pattern}) where {N, pattern}
+@generated function parse_shape(x, ::Val{pattern}) where {pattern}
+    N = ndims(x)
     pattern′ = replace_ellipses_parse_shape(pattern, N)
     inds = findall(x -> x isa Symbol, pattern′)
     names = pattern′[inds]    
@@ -53,7 +54,7 @@ julia> parse_shape(rand(2,2,4), Val((:a, :a, :b)))  # duplicate 'a' with same si
     end
 end
 
-function parse_shape(x::AbstractArray, ellipsis_pattern)
+function parse_shape(x, ellipsis_pattern)
     Base.depwarn("""
     `parse_shape(x, ellipsis_pattern)` is not type stable, use `parse_shape(x, Val(ellipsis_pattern))`
     or construct the pattern using `@einops_str` instead.
@@ -63,7 +64,7 @@ end
 
 # output type is statically knowable when pattern doesn't contain ellipses
 # (needs to be constant-propagated)
-function parse_shape(x::AbstractArray{<:Any,N}, pattern::Tuple{Vararg{Union{Symbol,typeof(-)}}}) where N
+function parse_shape(x, pattern::Tuple{Vararg{Union{Symbol,typeof(-)}}})
     names = extract(Symbol, pattern)
     inds = findtype(Symbol, pattern)
     shape_info = @ignore_derivatives NamedTuple{names,NTuple{length(inds),Int}}(size(x, i) for i in inds)
