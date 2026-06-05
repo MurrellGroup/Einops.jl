@@ -17,6 +17,7 @@ EINOPS_TEST_ZYGOTE && Pkg.add("Zygote")
     include("einsum.jl")
     include("pack_unpack.jl")
     include("macros.jl")
+    include("builders.jl")
     include("robustness.jl")
 
     EINOPS_TEST_ZYGOTE && include("ext_zygote/runtests.jl")
