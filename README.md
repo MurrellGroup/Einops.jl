@@ -27,12 +27,12 @@ Pkg.add("Einops")
 using Einops
 
 x = rand(2, 3, 4)
-y = rearrange(x, einops"a b c -> (a b) c")
+y = @rearrange(x, "a b c -> (a b) c")
 ```
 
 ## Einops vs Base primitives
 
-The snippets below show identical transformations expressed first with a single Einops expression and then with "hand-rolled" Julia primitives. Notice how Einops collapses multiple e.g. `reshape` / `permutedims` / `dropdims` / `repeat` calls into a single, declarative statement, while still expanding to such primitives under the hood whilst avoiding no-ops and double-wrappers.
+The snippets below show identical transformations expressed first with a single Einops expression and then with "hand-rolled" Julia primitives. Notice how Einops collapses multiple e.g. `reshape` / `permutedims` / `dropdims` / `repeat` calls into a single, declarative statement, while still expanding to such primitives under the hood and avoiding double-wrappers and no-ops.
 
 <table>
 <thead>
@@ -52,7 +52,7 @@ Flatten first two dimensions
 <td>
 
 ```julia
-rearrange(x, einops"a b c -> (a b) c")
+@rearrange(x, "a b c -> (a b) c")
 ```
 </td>
 <td>
@@ -70,7 +70,7 @@ Permute first two dimensions
 <td style="text-align:center">
 
 ```julia
-rearrange(x, einops"a b c -> b a c")
+@rearrange(x, "a b c -> b a c")
 ```
 </td>
 <td style="text-align:center">
@@ -88,7 +88,7 @@ Permute and flatten
 <td style="text-align:center">
 
 ```julia
-rearrange(x, einops"a b -> (b a)")
+@rearrange(x, "a b -> (b a)")
 ```
 </td>
 <td style="text-align:center">
@@ -106,7 +106,7 @@ Remove first dimension singleton
 <td style="text-align:center">
 
 ```julia
-rearrange(x, einops"1 ... -> ...")
+@rearrange(x, "1 ... -> ...")
 ```
 </td>
 <td style="text-align:center">
@@ -124,7 +124,7 @@ Funky repeat
 <td style="text-align:center">
 
 ```julia
-repeat(x, einops"... -> 2 ... 3")
+@repeat(x, "... -> 2 ... 3")
 
 
 
@@ -147,8 +147,8 @@ Multi-Head Attention
 <td style="text-align:center">
 
 ```julia
-rearrange(q,
-  einops"(d h) l b -> d l (h b)";
+@rearrange(q,
+  "(d h) l b -> d l (h b)";
   d=head_dim)
 
 
@@ -174,8 +174,8 @@ Grouped-Query Attention
 <td style="text-align:center">
 
 ```julia
-repeat(k,
-  einops"(d h) l b -> d l (r h b)";
+@repeat(k,
+  "(d h) l b -> d l (r h b)";
   d=head_dim, r=repeats)
 
 
@@ -199,10 +199,6 @@ reshape(
 
 </tbody>
 </table>
-
-## Notes
-
-Einops exposes the `einops` string macro to construct patterns, e.g. `einops"a b -> (b a)"`, which expands to the form `(:a, :b) --> ((:b, :a),)`, where `-->` is a custom operator that puts the left and right operands as type parameters of a special pattern type, allowing generated functions to compose clean expressions.
 
 ## Contributing
 
