@@ -56,14 +56,14 @@ function reduce_body(N, left, right, context_names)
     permutation = get_permutation(intersect(left_names, right_names), right_names)
     drop_shape = get_dropdims_shape(length(left_names), dims)
     shape_out = get_shape_out(right)
-    quote
-        $(isempty(extra_context) || :(context = merge(context, $extra_context)))
-        $(isnothing(shape_in) || :(x = Rewrap.reshape(x, $shape_in)))
-        $(isempty(dims) || :(x = Rewrap.reshape(f(x; dims=$dims), $drop_shape)))
-        $(permutation === ntuple(identity, length(permutation)) || :(x = $(Rewrap.Permute(permutation))(x)))
-        $(isnothing(shape_out) || :(x = Rewrap.reshape(x, $shape_out)))
-        x
-    end
+    body = Expr(:block)
+    isempty(extra_context) || push!(body.args, :(context = merge(context, $extra_context)))
+    isnothing(shape_in) || push!(body.args, :(x = Rewrap.reshape(x, $shape_in)))
+    isempty(dims) || push!(body.args, :(x = Rewrap.reshape(f(x; dims=$dims), $drop_shape)))
+    permutation === ntuple(identity, length(permutation)) || push!(body.args, :(x = $(Rewrap.Permute(permutation))(x)))
+    isnothing(shape_out) || push!(body.args, :(x = Rewrap.reshape(x, $shape_out)))
+    push!(body.args, :x)
+    return body
 end
 
 # Ellipsis variant; see `rearrange_body_ellipsis`. Ellipsis dims are kept, never reduced.
@@ -87,13 +87,12 @@ function reduce_body_ellipsis(L, R, context_names)
     expand_keep!(drop_shape, pli_left, m)
     perm = permutation === ntuple(identity, length(permutation)) ? nothing : permute_run_expr(permutation, pli_kept, m)
     isnothing(shape_out) || expand_shape_out!(shape_out, right, m)
-    quote
-        $(ellipsis_m_binding(L))
-        $(isempty(extra_context) || :(context = merge(context, $extra_context)))
-        $(isnothing(shape_in) || :(x = Rewrap.reshape(x, $shape_in)))
-        $(isempty(dims) || :(x = Rewrap.reshape(f(x; dims=$dims_x), $drop_shape)))
-        $(isnothing(perm) || :(x = $perm(x)))
-        $(isnothing(shape_out) || :(x = Rewrap.reshape(x, $shape_out)))
-        x
-    end
+    body = Expr(:block, ellipsis_m_binding(L))
+    isempty(extra_context) || push!(body.args, :(context = merge(context, $extra_context)))
+    isnothing(shape_in) || push!(body.args, :(x = Rewrap.reshape(x, $shape_in)))
+    isempty(dims) || push!(body.args, :(x = Rewrap.reshape(f(x; dims=$dims_x), $drop_shape)))
+    isnothing(perm) || push!(body.args, :(x = $perm(x)))
+    isnothing(shape_out) || push!(body.args, :(x = Rewrap.reshape(x, $shape_out)))
+    push!(body.args, :x)
+    return body
 end

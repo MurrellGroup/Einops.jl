@@ -36,11 +36,11 @@ function reshape_body(N, left, right, context_names)
     left_symbols == right_symbols || throw(ArgumentError("reshape requires symbols in same order on both sides. Got $left_symbols vs $right_symbols. Use rearrange for permutations."))
     shape_in = get_shape_in(N, left, context_names)
     shape_out = get_shape_out(right)
-    quote
-        $(isnothing(shape_in) || :(x = Rewrap.reshape(x, $shape_in)))
-        $(isnothing(shape_out) || :(x = Rewrap.reshape(x, $shape_out)))
-        x
-    end
+    body = Expr(:block)
+    isnothing(shape_in) || push!(body.args, :(x = Rewrap.reshape(x, $shape_in)))
+    isnothing(shape_out) || push!(body.args, :(x = Rewrap.reshape(x, $shape_out)))
+    push!(body.args, :x)
+    return body
 end
 
 # Ellipsis variant; see `rearrange_body_ellipsis`.
@@ -55,10 +55,9 @@ function reshape_body_ellipsis(L, R, context_names)
     shape_out = get_shape_out(right)
     isnothing(shape_in) || expand_keep!(shape_in, findfirst(==(ELLIPSIS_PLACEHOLDER), left), m)
     isnothing(shape_out) || expand_shape_out!(shape_out, right, m)
-    quote
-        $(ellipsis_m_binding(L))
-        $(isnothing(shape_in) || :(x = Rewrap.reshape(x, $shape_in)))
-        $(isnothing(shape_out) || :(x = Rewrap.reshape(x, $shape_out)))
-        x
-    end
+    body = Expr(:block, ellipsis_m_binding(L))
+    isnothing(shape_in) || push!(body.args, :(x = Rewrap.reshape(x, $shape_in)))
+    isnothing(shape_out) || push!(body.args, :(x = Rewrap.reshape(x, $shape_out)))
+    push!(body.args, :x)
+    return body
 end

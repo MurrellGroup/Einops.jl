@@ -42,12 +42,12 @@ function rearrange_body(N, left, right, context_names)
     shape_in = get_shape_in(N, left, context_names)
     permutation = get_permutation(extract(Symbol, left), extract(Symbol, right))
     shape_out = get_shape_out(right)
-    quote
-        $(isnothing(shape_in) || :(x = Rewrap.reshape(x, $shape_in)))
-        $(permutation === ntuple(identity, length(permutation)) || :(x = $(Rewrap.Permute(permutation))(x)))
-        $(isnothing(shape_out) || :(x = Rewrap.reshape(x, $shape_out)))
-        x
-    end
+    body = Expr(:block)
+    isnothing(shape_in) || push!(body.args, :(x = Rewrap.reshape(x, $shape_in)))
+    permutation === ntuple(identity, length(permutation)) || push!(body.args, :(x = $(Rewrap.Permute(permutation))(x)))
+    isnothing(shape_out) || push!(body.args, :(x = Rewrap.reshape(x, $shape_out)))
+    push!(body.args, :x)
+    return body
 end
 
 # Ellipsis variant: rank is unknown at expansion, so the ellipsis run folds to `Keep(m)`
@@ -63,33 +63,30 @@ function rearrange_body_ellipsis(L, R, context_names)
     isnothing(shape_in) || expand_keep!(shape_in, findfirst(==(ELLIPSIS_PLACEHOLDER), left), m)
     perm = permutation === ntuple(identity, length(permutation)) ? nothing : permute_run_expr(permutation, pli, m)
     isnothing(shape_out) || expand_shape_out!(shape_out, right, m)
-    quote
-        $(ellipsis_m_binding(L))
-        $(isnothing(shape_in) || :(x = Rewrap.reshape(x, $shape_in)))
-        $(isnothing(perm) || :(x = $perm(x)))
-        $(isnothing(shape_out) || :(x = Rewrap.reshape(x, $shape_out)))
-        x
-    end
+    body = Expr(:block, ellipsis_m_binding(L))
+    isnothing(shape_in) || push!(body.args, :(x = Rewrap.reshape(x, $shape_in)))
+    isnothing(perm) || push!(body.args, :(x = $perm(x)))
+    isnothing(shape_out) || push!(body.args, :(x = Rewrap.reshape(x, $shape_out)))
+    push!(body.args, :x)
+    return body
 end
 
 @generated function expand(x, ::Val{L}; context...) where {L}
     N = ndims(x)
     left = replace_ellipses_left(L, N)
     shape_in = get_shape_in(N, left, pairs_type_to_names(context); allow_repeats=true)
-    quote
-        context = NamedTuple(context)
-        $(isnothing(shape_in) || :(x = reshape(x, $shape_in)))
-        return x
-    end
+    body = Expr(:block, :(context = NamedTuple(context)))
+    isnothing(shape_in) || push!(body.args, :(x = reshape(x, $shape_in)))
+    push!(body.args, :(return x))
+    return body
 end
 
 @generated function collapse(x, ::Val{R}; context...) where {R}
     N = ndims(x)
     right = replace_ellipses_collapse(R, N)
     shape_out = get_shape_out(right)
-    quote
-        context = NamedTuple(context)
-        $(isnothing(shape_out) || :(x = reshape(x, $shape_out)))
-        return x
-    end
+    body = Expr(:block, :(context = NamedTuple(context)))
+    isnothing(shape_out) || push!(body.args, :(x = reshape(x, $shape_out)))
+    push!(body.args, :(return x))
+    return body
 end
