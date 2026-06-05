@@ -1,58 +1,104 @@
-# Shorthand macros that let a pattern be written as a plain string literal
-# instead of `einops"..."`. Each `@f(args...)` expands to `f(args...)` with the
-# single string-literal argument replaced by its parsed pattern, so e.g.
+# Shorthand macros: write a pattern as a plain string instead of `einops"..."`. When
+# the pattern can be sized at expansion time the macro inlines the whole plan at the
+# call site (a `let`, no `@generated` call and no `Base.Pairs` — both fragile for
+# consumers like cuTile); otherwise it falls back to the function call. The pattern may
+# sit anywhere among the positional args, so the same helper serves every op.
 #
-#     @rearrange(x, "a b -> b a", k=1)   ==>   rearrange(x, (:a, :b) --> (:b, :a); k=1)
-#
-# The string can sit anywhere among the positional arguments, which is why the
-# same helper works for `einsum` (pattern last) as for `rearrange` (pattern
-# second) or `reduce` (pattern third).
+#     @rearrange(x, "a b -> b a")   ==>   let x = x; x = Permute((2, 1))(x); x end
+
+# Inlineable ops → (local var names for `*_body`, static builder, ellipsis builder).
+# `einsum` is absent: it routes through OMEinsum, not a reshape/permute plan.
+const INLINEABLE = Dict{Symbol,Tuple{Vector{Symbol},Function,Function}}(
+    :rearrange => ([:x],     rearrange_body, rearrange_body_ellipsis),
+    :reshape   => ([:x],     reshape_body,   reshape_body_ellipsis),
+    :reduce    => ([:f, :x], reduce_body,    reduce_body_ellipsis),
+    :repeat    => ([:x],     repeat_body,    repeat_body_ellipsis),
+)
 
 function einops_macro_call(f::Symbol, args)
-    positional = Any[]
-    kwargs = Any[]
-    found = false
+    positional = Any[]        # raw (unescaped) positional args, excluding the pattern
+    pattern = nothing         # parsed value of the string-literal pattern
+    pattern_index = 0         # its slot among the positional args (source order)
+    names = Symbol[]          # statically known keyword names
+    kwentries = Any[]         # `:kw`/`:...` entries for building the context NamedTuple
+    has_splat = false
     for a in args
         if Meta.isexpr(a, :parameters)
-            # keyword arguments passed after `;`
             for kw in a.args
-                push!(kwargs, _to_kw(kw))
+                _collect_kw!(kw, names, kwentries) && (has_splat = true)
             end
         elseif Meta.isexpr(a, :(=))
-            push!(kwargs, _to_kw(a))
+            _collect_kw!(a, names, kwentries)
         elseif a isa AbstractString
-            found && throw(ArgumentError("@$f expects a single string pattern argument"))
-            found = true
-            push!(positional, parse_pattern(a))
+            pattern_index == 0 || throw(ArgumentError("@$f expects a single string pattern argument"))
+            pattern = parse_pattern(a)
+            pattern_index = length(positional) + 1
         else
-            push!(positional, esc(a))
+            push!(positional, a)
         end
     end
-    found || throw(ArgumentError("@$f expects a string pattern argument"))
+    pattern_index == 0 && throw(ArgumentError("@$f expects a string pattern argument"))
+
+    inlined = try_inline(f, pattern, positional, names, kwentries, has_splat)
+    inlined === nothing || return inlined
+
+    # Fallback: reconstruct the original `f(positional...; kwargs...)` call, with the
+    # pattern restored to the slot it occupied in the source.
+    posargs = Any[esc(a) for a in positional]
+    insert!(posargs, pattern_index, pattern)
     call = Expr(:call, GlobalRef(@__MODULE__, f))
-    isempty(kwargs) || push!(call.args, Expr(:parameters, kwargs...))
-    append!(call.args, positional)
+    isempty(kwentries) || push!(call.args, Expr(:parameters, kwentries...))
+    append!(call.args, posargs)
     return call
 end
 
-# Normalize a single keyword entry for forwarding into the generated call's
-# `:parameters` block. The parser emits one of four forms here:
-#   the `; k` shorthand (a bare `Symbol`), a `; kws...` splat (`:...`), the
-#   `; obj.k` property shorthand (`:.`, naming the keyword after the field), or
-#   an explicit `k = v` (`:kw` from `; k=v`, or `:(=)` from a trailing `, k=v`).
-# Only values are escaped; key names are not.
-function _to_kw(kw)
-    kw isa Symbol && return Expr(:kw, kw, esc(kw))          # `; k`  ==>  `k = k`
-    Meta.isexpr(kw, :...) && return Expr(:..., esc(kw.args[1]))  # `; kws...`
-    Meta.isexpr(kw, :.) && return Expr(:kw, kw.args[2].value, esc(kw))  # `; obj.k`  ==>  `k = obj.k`
-    return Expr(:kw, kw.args[1], esc(kw.args[2]))           # `k = v`
+# Record a keyword entry: its statically-known name (if any) and the `:kw`/`:...` entry
+# for the context NamedTuple. Returns `true` for a `; kws...` splat (keys unknowable).
+function _collect_kw!(kw, names, kwentries)
+    if kw isa Symbol                                   # `; k`  ==>  `k = k`
+        push!(names, kw); push!(kwentries, Expr(:kw, kw, esc(kw))); return false
+    elseif Meta.isexpr(kw, :...)                       # `; kws...`
+        push!(kwentries, Expr(:..., esc(kw.args[1]))); return true
+    elseif Meta.isexpr(kw, :.)                         # `; obj.k`  ==>  `k = obj.k`
+        push!(names, kw.args[2].value); push!(kwentries, Expr(:kw, kw.args[2].value, esc(kw))); return false
+    else                                               # `k = v`
+        push!(names, kw.args[1]); push!(kwentries, Expr(:kw, kw.args[1], esc(kw.args[2]))); return false
+    end
 end
+
+# Returns an inlined expression, or `nothing` to signal "fall back to the call".
+function try_inline(f, pattern, positional, names, kwentries, has_splat)
+    haskey(INLINEABLE, f) || return nothing
+    pattern isa ArrowPattern || return nothing
+    vars, static_body, ellipsis_body = INLINEABLE[f]
+    length(positional) == length(vars) || return nothing
+
+    L, R = arrow_sides(pattern)
+    has_ellipsis = (..) in flatten(L) || (..) in flatten(R)
+    # A `; kws...` splat hides keys we'd need to resolve a multi-symbol left group's
+    # inferred axis; without such a group the splat only supplies values, which stay
+    # available through the runtime NamedTuple.
+    has_splat && has_multisymbol_group(L) && return nothing
+
+    plan = has_ellipsis ? ellipsis_body(L, R, Tuple(names)) :
+                          static_body(length(L), L, R, Tuple(names))
+    context = Expr(:tuple, Expr(:parameters, kwentries...))
+    bindings = Any[Expr(:(=), v, esc(p)) for (v, p) in zip(vars, positional)]
+    push!(bindings, Expr(:(=), :context, context))
+    return Expr(:let, Expr(:block, bindings...), plan)
+end
+
+arrow_sides(::ArrowPattern{L,R}) where {L,R} = (L, R)
+
+has_multisymbol_group(side) = any(el -> el isa Tuple && length(el) >= 2, side)
 
 """
     @rearrange(x, "pattern", context...)
 
 Shorthand for [`rearrange`](@ref) that takes the pattern as a string literal
-instead of `einops"..."`.
+instead of `einops"..."`. The reshape/permute plan is inlined at the call site
+(no `@generated` function, no `Base.Pairs` keyword object) whenever the pattern
+can be sized at macro-expansion time, otherwise it falls back to a `rearrange` call.
 
 # Examples
 
@@ -73,7 +119,7 @@ end
     @reshape(x, "pattern", context...)
 
 Shorthand for [`reshape`](@ref) that takes the pattern as a string literal
-instead of `einops"..."`.
+instead of `einops"..."`. See [`@rearrange`](@ref) for inlining behaviour.
 
 # Examples
 
@@ -94,7 +140,7 @@ end
     @reduce(f, x, "pattern", context...)
 
 Shorthand for [`reduce`](@ref) that takes the pattern as a string literal
-instead of `einops"..."`.
+instead of `einops"..."`. See [`@rearrange`](@ref) for inlining behaviour.
 
 # Examples
 
@@ -115,7 +161,7 @@ end
     @repeat(x, "pattern", context...)
 
 Shorthand for [`repeat`](@ref) that takes the pattern as a string literal
-instead of `einops"..."`.
+instead of `einops"..."`. See [`@rearrange`](@ref) for inlining behaviour.
 
 # Examples
 
@@ -136,7 +182,8 @@ end
     @einsum(arrays..., "pattern", context...)
 
 Shorthand for [`einsum`](@ref) that takes the pattern as a string literal
-instead of `einops"..."`.
+instead of `einops"..."`. Always expands to an `einsum` call (it is not type
+stable and routes through OMEinsum rather than a reshape/permute plan).
 
 # Examples
 

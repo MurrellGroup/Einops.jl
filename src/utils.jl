@@ -65,3 +65,70 @@ function get_dropdims_shape(N::Int, dims::Tuple{Vararg{Int}})
     end
     return new_shape
 end
+
+# === Ellipsis inlining for the shorthand macros ===
+#
+# With an ellipsis the rank N = ndims(x) is unknown at expansion, so the span it covers,
+# `m = N - C`, rides in as the folded constant `ndims(x) - C`. The structure is still
+# built at expansion: the ellipsis becomes one placeholder symbol, the ordinary builders
+# run, then each N-dependent piece is rewritten in terms of `m` — a kept run folds to a
+# single `Keep(m)`, a fixed+ellipsis merge to `Merge((k-1)+m)`, reduced indices past it
+# shift by `m-1`, and the permutation expands its slot via `ntuple(_, Val(m))`.
+
+const ELLIPSIS_PLACEHOLDER = Symbol("__ellipsis_placeholder__")
+
+# Replace the ellipsis (`..`, possibly nested on the right) with the placeholder.
+replace_ellipsis_placeholder(side) =
+    map(el -> el == (..) ? ELLIPSIS_PLACEHOLDER :
+              el isa Tuple ? replace_ellipsis_placeholder(el) : el, side)
+
+# `m` is captured once at the top of the body, since `x` is reassigned as the plan runs
+# and `ndims(x)` would otherwise drift. C = length(L) - 1 (every left entry but the slot).
+const ELLIPSIS_M = Symbol("__ellipsis_m__")
+ellipsis_m_binding(L) = :($ELLIPSIS_M = ndims(x) - $(length(L) - 1))
+
+keep_run(m) = Expr(:call, Keep, m)                        # Keep(m)
+merge_span(k, m) = Expr(:call, Merge, :($(k - 1) + $m))   # Merge((k-1) + m)
+
+# Expand the placeholder's permutation slot into the run `pli, …, pli+m-1`; shift later
+# indices by m-1.
+function permute_run_expr(permutation, pli, m)
+    entries = Any[]
+    for e in permutation
+        if e < pli
+            push!(entries, e)
+        elseif e == pli
+            push!(entries, Expr(:..., :(ntuple(i -> i + $(pli - 1), Val($m)))))
+        else
+            push!(entries, :($(e - 1) + $m))
+        end
+    end
+    return Expr(:call, Permute, Expr(:tuple, entries...))
+end
+
+# Swap the op at top-level entry `i` (the placeholder's `Keep()`) for `Keep(m)`.
+expand_keep!(ops::Expr, i, m) = (ops.args[i] = keep_run(m); ops)
+
+# Placeholder is either a top-level `Keep` (→ `Keep(m)`) or inside a merged group (→ bump).
+function expand_shape_out!(shape_out::Expr, right, m)
+    oidx = findfirst(==(ELLIPSIS_PLACEHOLDER), right)
+    if oidx !== nothing
+        shape_out.args[oidx] = keep_run(m)
+    else
+        gidx = findfirst(t -> t isa Tuple && ELLIPSIS_PLACEHOLDER in t, right)
+        shape_out.args[gidx] = merge_span(length(right[gidx]), m)
+    end
+    return shape_out
+end
+
+# Index of the `n`-th `Keep` op (locates the placeholder keep among interleaved `Unsqueeze`s).
+function nth_keep_index(ops::Expr, n)
+    count = 0
+    for (i, op) in enumerate(ops.args)
+        if Meta.isexpr(op, :call) && op.args[1] === Keep
+            count += 1
+            count == n && return i
+        end
+    end
+    error("placeholder keep not found")
+end

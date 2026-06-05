@@ -30,15 +30,45 @@ true
 @generated function rearrange(x, ::ArrowPattern{L,R}; context...) where {L,R}
     N = ndims(x)
     left, right = replace_ellipses(L, R, N)
-    shape_in = get_shape_in(N, left, pairs_type_to_names(context))
+    quote
+        context = NamedTuple(context)
+        $(rearrange_body(N, left, right, pairs_type_to_names(context)))
+    end
+end
+
+# `rearrange`'s plan, factored out so `@rearrange` can splice it inline. `left`/`right`
+# are ellipsis-resolved for `N`; the block operates on `x`/`context` and returns `x`.
+function rearrange_body(N, left, right, context_names)
+    shape_in = get_shape_in(N, left, context_names)
     permutation = get_permutation(extract(Symbol, left), extract(Symbol, right))
     shape_out = get_shape_out(right)
     quote
-        context = NamedTuple(context)
         $(isnothing(shape_in) || :(x = Rewrap.reshape(x, $shape_in)))
         $(permutation === ntuple(identity, length(permutation)) || :(x = $(Rewrap.Permute(permutation))(x)))
         $(isnothing(shape_out) || :(x = Rewrap.reshape(x, $shape_out)))
-        return x
+        x
+    end
+end
+
+# Ellipsis variant: rank is unknown at expansion, so the ellipsis run folds to `Keep(m)`
+# and the permutation expands via `Val(ndims(x))` (staging helpers in `utils.jl`).
+function rearrange_body_ellipsis(L, R, context_names)
+    left = replace_ellipsis_placeholder(L)
+    right = replace_ellipsis_placeholder(R)
+    m = ELLIPSIS_M
+    shape_in = get_shape_in(length(left), left, context_names)
+    permutation = get_permutation(extract(Symbol, left), extract(Symbol, right))
+    shape_out = get_shape_out(right)
+    pli = findfirst(==(ELLIPSIS_PLACEHOLDER), extract(Symbol, left))
+    isnothing(shape_in) || expand_keep!(shape_in, findfirst(==(ELLIPSIS_PLACEHOLDER), left), m)
+    perm = permutation === ntuple(identity, length(permutation)) ? nothing : permute_run_expr(permutation, pli, m)
+    isnothing(shape_out) || expand_shape_out!(shape_out, right, m)
+    quote
+        $(ellipsis_m_binding(L))
+        $(isnothing(shape_in) || :(x = Rewrap.reshape(x, $shape_in)))
+        $(isnothing(perm) || :(x = $perm(x)))
+        $(isnothing(shape_out) || :(x = Rewrap.reshape(x, $shape_out)))
+        x
     end
 end
 
