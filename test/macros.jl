@@ -121,6 +121,19 @@ using Test
         end
     end
 
+    @testset "inlining preserves rank validation" begin
+        # A rank-mismatched no-op pattern must still error, matching the function path,
+        # rather than silently returning the array (the inlined plan skips get_shape_in's
+        # rank check, so the macro re-emits it).
+        @test_throws ArgumentError @rearrange(rand(2, 3, 4), "a b -> a b")
+        @test_throws ArgumentError @reshape(rand(2, 3, 4), "a b -> a b")
+        @test_throws ArgumentError @reduce(sum, rand(5), "a b -> a")
+        @test_throws ArgumentError @repeat(rand(2, 3, 4), "a b -> a b r", r=2)
+        # ellipsis must span ≥ 0 dims
+        @test_throws ArgumentError @rearrange(rand(2), "a b ... -> ... b a")
+        @test (@rearrange(rand(2, 3), "a b ... -> ... b a"); true)  # 0-dim ellipsis is fine
+    end
+
     @testset "inlined plans are type stable" begin
         # Mirrors the constant-folding cuTile relies on: rank enters via the arg type.
         r1(x) = @rearrange(x, "a ... b -> b ... a")

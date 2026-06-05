@@ -85,10 +85,22 @@ function try_inline(f, pattern, positional, names, kwentries, has_splat)
     context = Expr(:tuple, Expr(:parameters, kwentries...))
     bindings = Any[Expr(:(=), v, esc(p)) for (v, p) in zip(vars, positional)]
     push!(bindings, Expr(:(=), :context, context))
-    return Expr(:let, Expr(:block, bindings...), plan)
+    body = Expr(:block, rank_check(L, has_ellipsis), plan)
+    return Expr(:let, Expr(:block, bindings...), body)
 end
 
 arrow_sides(::ArrowPattern{L,R}) where {L,R} = (L, R)
+
+# Inlining builds the plan with `length(L)`, so `get_shape_in`'s `ndims(x)` rank check
+# collapses to a tautology and is lost. Re-emit it: an exact rank without an ellipsis,
+# a lower bound (the ellipsis must span ≥ 0 dims) with one. The non-ellipsis message
+# matches `get_shape_in`'s.
+function rank_check(L, has_ellipsis)
+    n = length(L) - has_ellipsis
+    has_ellipsis ?
+        :(ndims(x) >= $n || throw(ArgumentError(string("Input rank ", ndims(x), " is too small for pattern requiring at least ", $n, " dimensions")))) :
+        :(ndims(x) == $n || throw(ArgumentError(string("Input length ", $n, " does not match array dimensionality ", ndims(x)))))
+end
 
 has_multisymbol_group(side) = any(el -> el isa Tuple && length(el) >= 2, side)
 
