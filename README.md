@@ -141,7 +141,7 @@ repeat(
 
 <tr><td>
 
-Multi-Head Attention
+Setup for Multi-Head Attention
 
 </td>
 <td style="text-align:center">
@@ -168,7 +168,7 @@ reshape(
 
 <tr><td>
 
-Grouped-Query Attention
+Setup for Grouped-Query Attention
 
 </td>
 <td style="text-align:center">
