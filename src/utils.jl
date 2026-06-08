@@ -90,21 +90,20 @@ ellipsis_m_binding(L) = :($ELLIPSIS_M = ndims(x) - $(length(L) - 1))
 keep_run(m) = Expr(:call, Keep, m)                        # Keep(m)
 merge_span(k, m) = Expr(:call, Merge, :($(k - 1) + $m))   # Merge((k-1) + m)
 
-# Expand the placeholder's permutation slot into the run `pli, …, pli+m-1`; shift later
-# indices by m-1.
-function permute_run_expr(permutation, pli, m)
-    entries = Any[]
-    for e in permutation
-        if e < pli
-            push!(entries, e)
-        elseif e == pli
-            push!(entries, Expr(:..., :(ntuple(i -> i + $(pli - 1), Val($m)))))
-        else
-            push!(entries, :($(e - 1) + $m))
-        end
-    end
-    return Expr(:call, Permute, Expr(:tuple, entries...))
+@inline function ellipsis_perm(::Val{skeleton}, ::Val{pli}, ::Val{N}) where {skeleton,pli,N}
+    m = N - (length(skeleton) - 1)
+    q = something(findfirst(==(pli), skeleton))   # placeholder's slot in the skeleton
+    shift(e) = e < pli ? e : e - 1 + m            # e ≠ pli here ⇒ always an Int
+    before = ntuple(i -> shift(skeleton[i]),     Val(q - 1))
+    run    = ntuple(i -> pli + i - 1,            Val(m))
+    after  = ntuple(i -> shift(skeleton[q + i]), Val(length(skeleton) - q))
+    return (before..., run..., after...)
 end
+
+@inline _permute(x, perm::NTuple{N,Int}) where {N} = Permute{perm,N}()(x)
+
+permute_run_expr(permutation, pli) =
+    :(_permute(x, ellipsis_perm($(Val(permutation)), $(Val(pli)), Val(ndims(x)))))
 
 # Swap the op at top-level entry `i` (the placeholder's `Keep()`) for `Keep(m)`.
 expand_keep!(ops::Expr, i, m) = (ops.args[i] = keep_run(m); ops)

@@ -104,7 +104,7 @@ function repeat_body_ellipsis(L, R, context_names)
     pli_right = findfirst(==(ELLIPSIS_PLACEHOLDER), right_names)
 
     isnothing(shape_in) || expand_keep!(shape_in, findfirst(==(ELLIPSIS_PLACEHOLDER), left), m)
-    perm = permutation === ntuple(identity, length(permutation)) ? nothing : permute_run_expr(permutation, pli_left, m)
+    perm = permutation === ntuple(identity, length(permutation)) ? nothing : permute_run_expr(permutation, pli_left)
     do_repeat = !all(==(1), repeat_dims)
     pre_repeat = repeat_tuple = nothing
     if do_repeat
@@ -118,7 +118,7 @@ function repeat_body_ellipsis(L, R, context_names)
     body = Expr(:block, ellipsis_m_binding(L))
     isempty(extra_context) || push!(body.args, :(context = merge(context, $extra_context)))
     isnothing(shape_in) || push!(body.args, :(x = Rewrap.reshape(x, $shape_in)))
-    isnothing(perm) || push!(body.args, :(x = $perm(x)))
+    isnothing(perm) || push!(body.args, :(x = $perm))
     if do_repeat
         push!(body.args, :(x = Rewrap.reshape(x, $pre_repeat)))
         push!(body.args, :(x = Repeat($repeat_tuple)(x)))
