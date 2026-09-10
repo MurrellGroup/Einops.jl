@@ -1,5 +1,10 @@
 using Rewrap: Keep, Merge, Split, Resqueeze, Squeeze, Unsqueeze, Repeat
 
+# Every reshape the generated code emits goes through this hook, so an array type can
+# take over without touching Rewrap: the Reactant extension materializes the lazy
+# `ReshapedArray` that `Base.reshape` leaves around a traced array.
+_reshape(x, shape) = Rewrap.reshape(x, shape)
+
 pairs_type_to_names(::Type{<:Base.Pairs{Symbol,<:Any,<:Any,<:NamedTuple{names}}}) where names = names
 
 function get_shape_in(N, left, context_names; allow_repeats=false)

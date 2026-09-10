@@ -14,10 +14,17 @@ Republic = "27243419-9dde-4721-b67c-fd63626fea7f"
 Rewrap = "e37f04ce-ca06-4a96-b09f-ea39bec02b08"
 TupleTools = "9d95972d-f1c8-5527-a6e0-b4b365fa01f6"
 
+[weakdeps]
+Reactant = "3c362404-f566-11ee-1572-e11a4b42c853"
+
+[extensions]
+ReactantExt = "Reactant"
+
 [compat]
 ChainRulesCore = "1.7"
 EllipsisNotation = "1"
 OMEinsum = "0.8, 0.9"
+Reactant = "0.2"
 Republic = "2.2"
 Rewrap = "0.1.8"
 TupleTools = "1"

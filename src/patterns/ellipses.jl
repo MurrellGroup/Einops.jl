@@ -81,6 +81,7 @@ function replace_ellipses_collapse(right, N)
     end
 end
 
+# The caller has already normalized the left side to one tuple per operand.
 @generated function replace_ellipses_einsum(::ArrowPattern{left,right}, ::Val{Ns}) where {left,right,Ns}
     pattern = left --> right
     (..) ∉ flatten(left) && (..) ∉ flatten(right) && return :($pattern)
