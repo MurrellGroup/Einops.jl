@@ -34,7 +34,6 @@ export repeat
 
 include("einsum.jl")
 export einsum
-@public contract
 
 include("pack_unpack.jl")
 export pack, unpack

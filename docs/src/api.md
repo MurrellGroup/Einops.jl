@@ -48,7 +48,6 @@ Einops.@repeat
 ```@docs
 einsum
 Einops.@einsum
-Einops.contract
 ```
 
 ## `pack` and `unpack`

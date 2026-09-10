@@ -93,19 +93,9 @@ end
 """
     contract(ixs, iout, xs...; optimizer=OMEinsum.GreedyMethod())
 
-Backend entry point of [`einsum`](@ref): `xs[k]` carries the flat symbol labels `ixs[k]`,
-and the result carries the labels `iout`. Ellipses and grouped axes are already resolved
-by the time this is called. The default method contracts through OMEinsum; array types
-can add methods to take over, as the Reactant extension does for two operands.
-
-# Examples
-
-```jldoctest
-julia> x, y = rand(2, 3), rand(3, 4);
-
-julia> Einops.contract(((:i, :j), (:j, :k)), (:i, :k), x, y) ≈ x * y
-true
-```
+Internal backend hook for einsum. `xs[k]` carries the flat symbol labels `ixs[k]`,
+and the result carries `iout`; ellipses and grouped axes are already resolved.
+Defaults to OMEinsum; the Reactant extension overrides two-operand contractions.
 """
 function contract(
     ixs::Tuple, iout::Tuple, xs::AbstractArray...;
