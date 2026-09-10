@@ -21,8 +21,9 @@ check_side(x) = is_valid_side(x) || throw(ArgumentError("Invalid pattern: $x. Tu
 """
     ArrowPattern{L,R}
 
-A pair of tuples representing the left and right sides of a `rearrange`/`reduce`/`repeat` pattern.
-These tuples are stored as type parameters, such that the pattern is known at compile time.
+The left and right tuples of a pattern, stored as type parameters so the pattern
+is known at compile time. For einsum with one array, the left tuple describes its
+axes; with multiple arrays, it contains one axis-pattern tuple per array.
 
 An instance `ArrowPattern{L,R}()` gets shown as `L --> R`, as [`-->`](@ref) is used for construction.
 """
@@ -47,6 +48,9 @@ Base.broadcastable(p::ArrowPattern) = Ref(p)
 
 Create an [`ArrowPattern`](@ref) from a left and right tuple.
 Non-tuple elements are automatically wrapped in a single-element tuple.
+For einsum with multiple arrays, the left tuple contains one pattern per array.
+With one array, the entire left tuple describes its axes: nested tuples group axes,
+and there is no additional one-element operand-list wrapper.
 
 # Examples
 
