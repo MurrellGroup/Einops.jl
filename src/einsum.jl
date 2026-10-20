@@ -127,7 +127,12 @@ function contraction_order(node)
     eins = OMEinsum.rootcode(node)
     ixs = Tuple(Tuple(ix) for ix in OMEinsum.getixsv(eins))
     iout = Tuple(OMEinsum.getiyv(eins))
-    return (; ixs, iout, children = Tuple(map(contraction_order, OMEinsum.siblings(node))))
+    # A loop, not `map`: a tracing compiler inspects what `map` is given.
+    children = Any[]
+    for child in OMEinsum.siblings(node)
+        push!(children, contraction_order(child))
+    end
+    return (; ixs, iout, children = Tuple(children))
 end
 
 function contraction_order(tree::OMEinsum.SlicedEinsum)
