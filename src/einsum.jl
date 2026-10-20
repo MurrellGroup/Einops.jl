@@ -115,20 +115,26 @@ function contract(
 )
     code = OMEinsum.StaticEinCode{Symbol,ixs,iout}()
     length(xs) <= 2 && return code(xs...)
-    tree = @ignore_derivatives OMEinsum.optimize_code(code, get_size_dict(xs, ixs), optimizer)
-    return contract_tree(tree, xs)
+    order = @ignore_derivatives contraction_order(OMEinsum.optimize_code(code, get_size_dict(xs, ixs), optimizer))
+    return contract_tree(order, xs)
 end
 
-# A node of the contraction tree: an operand, or the contraction of its children.
-function contract_tree(node, xs)
-    OMEinsum.isleaf(node) && return xs[OMEinsum.tensorindex(node)]
+# The contraction tree as plain data: an operand's position at a leaf, and at a node
+# the labels of its children, of its result, and the children. OMEinsum's own tree
+# leaves fields undefined at its leaves, which a tracing compiler cannot look at.
+function contraction_order(node)
+    OMEinsum.isleaf(node) && return OMEinsum.tensorindex(node)
     eins = OMEinsum.rootcode(node)
     ixs = Tuple(Tuple(ix) for ix in OMEinsum.getixsv(eins))
     iout = Tuple(OMEinsum.getiyv(eins))
-    return contract(ixs, iout, map(child -> contract_tree(child, xs), OMEinsum.siblings(node))...)
+    return (; ixs, iout, children = Tuple(map(contraction_order, OMEinsum.siblings(node))))
 end
 
-function contract_tree(tree::OMEinsum.SlicedEinsum, xs)
+function contraction_order(tree::OMEinsum.SlicedEinsum)
     isempty(tree.slicing) || throw(ArgumentError("A sliced contraction order is not supported; choose an optimizer without slicing"))
-    return contract_tree(tree.eins, xs)
+    return contraction_order(tree.eins)
 end
+
+contract_tree(k::Int, xs) = xs[k]
+contract_tree(node::NamedTuple, xs) =
+    contract(node.ixs, node.iout, map(child -> contract_tree(child, xs), node.children)...)
