@@ -81,6 +81,27 @@ end
         @test einsum(x, y, z, einops"i j, j k, k l -> i l"; optimizer=Einops.OMEinsum.GreedyMethod()) ≈ x * y * z
     end
 
+    @testset "more than two operands contract pairwise" begin
+        # An array type that takes over two-operand contractions sees every pair.
+        pairs = Tuple[]
+        struct Tagged{T,N} <: AbstractArray{T,N}
+            a::Array{T,N}
+        end
+        Base.size(t::Tagged) = size(t.a)
+        Base.getindex(t::Tagged, i::Int...) = t.a[i...]
+        Einops.contract(ixs::NTuple{2,Tuple}, iout::Tuple, x::Tagged, y::Tagged; kws...) =
+            (push!(pairs, ixs); Tagged(Einops.contract(ixs, iout, x.a, y.a)))
+        x, y, z, w = rand(2, 3), rand(3, 4), rand(4, 5), rand(5, 2)
+        out = einsum(Tagged(x), Tagged(y), Tagged(z), Tagged(w), einops"i j, j k, k l, l m -> i m")
+        @test out isa Tagged
+        @test out.a ≈ x * y * z * w
+        @test length(pairs) == 3
+        @test einsum(x, y, z, w, einops"i j, j k, k l, l m -> i m") ≈ x * y * z * w
+        # A trace inside the tree still goes through OMEinsum on one operand.
+        m = rand(3, 3)
+        @test einsum(Tagged(x), Tagged(m), Tagged(y), einops"i j, j j, j k -> i k").a ≈ x * Diagonal(m) * y
+    end
+
     @testset "single operand reduces without OMEinsum" begin
         x = rand(3, 4, 5)
         @test einsum(x, einops"i j k -> k i") == reduce(sum, x, einops"i j k -> k i")

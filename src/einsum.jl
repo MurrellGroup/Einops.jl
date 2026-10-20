@@ -95,8 +95,10 @@ end
 
 Backend entry point of [`einsum`](@ref): `xs[k]` carries the flat symbol labels `ixs[k]`,
 and the result carries the labels `iout`. Ellipses and grouped axes are already resolved
-by the time this is called. The default method contracts through OMEinsum; array types
-can add methods to take over, as the Reactant extension does for two operands.
+by the time this is called. One or two operands contract through OMEinsum; more contract
+pairwise, in the order `optimizer` finds, each pair through the two-operand method. So an
+array type takes over every einsum by adding methods for one and two operands, as the
+Reactant extension does for two.
 
 # Examples
 
@@ -111,9 +113,22 @@ function contract(
     ixs::Tuple, iout::Tuple, xs::AbstractArray...;
     optimizer::OMEinsum.CodeOptimizer = OMEinsum.GreedyMethod()
 )
-    optimized_code = @ignore_derivatives begin
-        code = OMEinsum.StaticEinCode{Symbol,ixs,iout}()
-        OMEinsum.optimize_code(code, get_size_dict(xs, ixs), optimizer)
-    end
-    return optimized_code(xs...)
+    code = OMEinsum.StaticEinCode{Symbol,ixs,iout}()
+    length(xs) <= 2 && return code(xs...)
+    tree = @ignore_derivatives OMEinsum.optimize_code(code, get_size_dict(xs, ixs), optimizer)
+    return contract_tree(tree, xs)
+end
+
+# A node of the contraction tree: an operand, or the contraction of its children.
+function contract_tree(node, xs)
+    OMEinsum.isleaf(node) && return xs[OMEinsum.tensorindex(node)]
+    eins = OMEinsum.rootcode(node)
+    ixs = Tuple(Tuple(ix) for ix in OMEinsum.getixsv(eins))
+    iout = Tuple(OMEinsum.getiyv(eins))
+    return contract(ixs, iout, map(child -> contract_tree(child, xs), OMEinsum.siblings(node))...)
+end
+
+function contract_tree(tree::OMEinsum.SlicedEinsum, xs)
+    isempty(tree.slicing) || throw(ArgumentError("A sliced contraction order is not supported; choose an optimizer without slicing"))
+    return contract_tree(tree.eins, xs)
 end

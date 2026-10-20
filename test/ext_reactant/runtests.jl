@@ -35,6 +35,14 @@ Reactant.set_default_backend("cpu")
         @test Array(@jit einsum(XB, YB, einops"b i j, b j k -> b i k")) ≈ expected
     end
 
+    @testset "three operands" begin
+        z = rand(6, 3)
+        Z = Reactant.to_rarray(z)
+        chain(x, y, z) = einsum(x, y, z, einops"i j, j k, k l -> i l")
+        @test Array(@jit chain(X, Y, Z)) ≈ x * y * z
+        @test count("stablehlo.dot_general", string(@code_hlo chain(X, Y, Z))) == 2
+    end
+
     @testset "permuted output" begin
         @test Array(@jit einsum(X, Y, einops"i j, j k -> k i")) ≈ (x * y)'
     end
