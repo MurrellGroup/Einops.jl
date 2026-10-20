@@ -2,6 +2,7 @@ function parse_pattern(pattern::AbstractString)
     occursin("->", pattern) || return tokenize_generic(pattern)
     lhs, rhs = strip.(split(pattern, "->"; limit = 2))
     occursin("->", rhs) && throw(ArgumentError("multiple \"->\" in pattern"))
+    occursin(",", rhs) && throw(ArgumentError("Commas are only allowed on the input side of a pattern"))
     return tokenize_side(lhs) --> tokenize_side(rhs)
 end
 
@@ -9,7 +10,7 @@ function tokenize_side(side::AbstractString)
     # Check if there are any commas
     if occursin(",", side)
         # Split by comma and process each part separately
-        parts = split(side, ",")
+        parts = split(side, ","; keepempty=true)
         return Tuple(tokenize_side(strip(part)) for part in parts)
     end
     

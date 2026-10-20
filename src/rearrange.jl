@@ -43,9 +43,9 @@ function rearrange_body(N, left, right, context_names)
     permutation = get_permutation(extract(Symbol, left), extract(Symbol, right))
     shape_out = get_shape_out(right)
     body = Expr(:block)
-    isnothing(shape_in) || push!(body.args, :(x = Rewrap.reshape(x, $shape_in)))
+    isnothing(shape_in) || push!(body.args, :(x = _reshape(x, $shape_in)))
     permutation === ntuple(identity, length(permutation)) || push!(body.args, :(x = $(Rewrap.Permute(permutation))(x)))
-    isnothing(shape_out) || push!(body.args, :(x = Rewrap.reshape(x, $shape_out)))
+    isnothing(shape_out) || push!(body.args, :(x = _reshape(x, $shape_out)))
     push!(body.args, :x)
     return body
 end
@@ -64,9 +64,9 @@ function rearrange_body_ellipsis(L, R, context_names)
     perm = permutation === ntuple(identity, length(permutation)) ? nothing : permute_run_expr(permutation, pli)
     isnothing(shape_out) || expand_shape_out!(shape_out, right, m)
     body = Expr(:block, ellipsis_m_binding(L))
-    isnothing(shape_in) || push!(body.args, :(x = Rewrap.reshape(x, $shape_in)))
+    isnothing(shape_in) || push!(body.args, :(x = _reshape(x, $shape_in)))
     isnothing(perm) || push!(body.args, :(x = $perm))
-    isnothing(shape_out) || push!(body.args, :(x = Rewrap.reshape(x, $shape_out)))
+    isnothing(shape_out) || push!(body.args, :(x = _reshape(x, $shape_out)))
     push!(body.args, :x)
     return body
 end
@@ -76,7 +76,7 @@ end
     left = replace_ellipses_left(L, N)
     shape_in = get_shape_in(N, left, pairs_type_to_names(context); allow_repeats=true)
     body = Expr(:block, :(context = NamedTuple(context)))
-    isnothing(shape_in) || push!(body.args, :(x = reshape(x, $shape_in)))
+    isnothing(shape_in) || push!(body.args, :(x = _reshape(x, $shape_in)))
     push!(body.args, :(return x))
     return body
 end
@@ -86,7 +86,7 @@ end
     right = replace_ellipses_collapse(R, N)
     shape_out = get_shape_out(right)
     body = Expr(:block, :(context = NamedTuple(context)))
-    isnothing(shape_out) || push!(body.args, :(x = reshape(x, $shape_out)))
+    isnothing(shape_out) || push!(body.args, :(x = _reshape(x, $shape_out)))
     push!(body.args, :(return x))
     return body
 end

@@ -10,7 +10,7 @@ using Test, LinearAlgebra
 
     @testset "trace operations" begin
         x = rand(4, 4)
-        @test einsum(x, einops"i i ->")[] == tr(x)
+        @test einsum(x, einops"i i ->")[] ≈ tr(x)
         @test_broken (@inferred einsum(x, einops"i i ->"))[] == tr(x)
     end
 
@@ -72,4 +72,88 @@ end
         @test size(y) == (2, 3)
         @test y ≈ reshape(x, 2, 3)
     end
+
+    @testset "contract on host arrays" begin
+        x, y, z = rand(2, 3), rand(3, 4), rand(4, 5)
+        @test Einops.contract(((:i, :j), (:j, :k)), (:i, :k), x, y) ≈ x * y
+        @test Einops.contract(((:i, :j), (:j, :k), (:k, :l)), (:i, :l), x, y, z) ≈ x * y * z
+        @test einsum(x, y, einops"i j, j k -> i k") == Einops.contract(((:i, :j), (:j, :k)), (:i, :k), x, y)
+        @test einsum(x, y, z, einops"i j, j k, k l -> i l"; optimizer=Einops.OMEinsum.GreedyMethod()) ≈ x * y * z
+    end
+
+    @testset "more than two operands contract pairwise" begin
+        # An array type that takes over two-operand contractions sees every pair.
+        pairs = Tuple[]
+        struct Tagged{T,N} <: AbstractArray{T,N}
+            a::Array{T,N}
+        end
+        Base.size(t::Tagged) = size(t.a)
+        Base.getindex(t::Tagged, i::Int...) = t.a[i...]
+        Einops.contract(ixs::NTuple{2,Tuple}, iout::Tuple, x::Tagged, y::Tagged; kws...) =
+            (push!(pairs, ixs); Tagged(Einops.contract(ixs, iout, x.a, y.a)))
+        x, y, z, w = rand(2, 3), rand(3, 4), rand(4, 5), rand(5, 2)
+        out = einsum(Tagged(x), Tagged(y), Tagged(z), Tagged(w), einops"i j, j k, k l, l m -> i m")
+        @test out isa Tagged
+        @test out.a ≈ x * y * z * w
+        @test length(pairs) == 3
+        @test einsum(x, y, z, w, einops"i j, j k, k l, l m -> i m") ≈ x * y * z * w
+        # A trace inside the tree still goes through OMEinsum on one operand.
+        m = rand(3, 3)
+        @test einsum(Tagged(x), Tagged(m), Tagged(y), einops"i j, j j, j k -> i k").a ≈ x * Diagonal(m) * y
+    end
+
+    @testset "single operand reduces without OMEinsum" begin
+        x = rand(3, 4, 5)
+        @test einsum(x, einops"i j k -> k i") == reduce(sum, x, einops"i j k -> k i")
+        @test einsum(x, einops"i j k -> k i") ≈ Einops.contract(((:i, :j, :k),), (:k, :i), x)
+        @test einsum(x, einops"(a b) j k -> b k"; a=3) == reduce(sum, x, einops"(a b) j k -> b k"; a=3)
+        @test einsum(x, einops"i ... -> ...") == reduce(sum, x, einops"i ... -> ...")
+        x4 = reshape(x, 3, 1, 4, 5)
+        @test einsum(x4, einops"i 1 j k -> i j") == reduce(sum, x4, einops"i 1 j k -> i j")
+        m = rand(4, 4)
+        @test only(einsum(m, einops"i i -> ")) ≈ tr(m)      # repeated labels still go to OMEinsum
+    end
+
+    @testset "explicit single operand and scalar operands" begin
+        x = rand(2, 3)
+        @test einsum(x, (:i, :j) --> (:i,)) == vec(sum(x; dims=2))
+        @test einsum(x, (:i, ..) --> (:i,)) == vec(sum(x; dims=2))
+        @test einsum(x, ((:a, :b), :j) --> (:b,); a=2) ==
+              reduce(sum, x, einops"(a b) j -> b"; a=2)
+        scalar = fill(3.0)
+        @test einsum(scalar, () --> ()) == scalar
+        @test_throws ArgumentError einsum(scalar, ((),) --> ())
+        @test einops"a, -> a" === (((:a,), ()) --> (:a,))
+        @test einops"a, a, -> a" === (((:a,), (:a,), ()) --> (:a,))
+        v = [1.0, 2.0]
+        @test einsum(v, scalar, einops"a, -> a") == 3 .* v
+        @test einsum(scalar, v, einops", a -> a") == 3 .* v
+        @test einsum(v, v, scalar, einops"a, a, -> a") == 3 .* v .* v
+        @test einsum(scalar, scalar, einops", ->") == fill(9.0)
+        @test_throws ArgumentError einsum(v, einops"a, -> a")
+        @test einsum(x, x, ((:i, :j), (:i, :j)) --> (:i,)) ≈ vec(sum(x .* x; dims=2))
+        @test_throws ArgumentError einsum(x, x, (:i, :j) --> (:i,))
+        @test_throws ArgumentError einsum(v, v, scalar, einops"a, a -> a")
+    end
+
+    @testset "arity distinguishes groups from operand lists" begin
+        x = collect(1.0:6.0)
+        expected = reshape(x, 2, 3)
+        @test einsum(x, einops"(a b) -> a b"; a=2) == expected
+        @test Einops.@einsum(x, "(a b) -> a b"; a=2) == expected
+        @test einsum(expected, einops"a b -> a b") == expected
+        @test einsum(x, ((:a, :b),) --> (:a, :b); a=2) == expected
+        @test einsum(x, Einops.ArrowPattern{((:a, :b),), (:a, :b)}(); a=2) == expected
+        @test_throws ArgumentError einsum(expected, ((:a, :b),) --> (:a, :b))
+        @test einsum(reshape(x, 2, 3), einops"(a b) (c d) -> a b c d"; a=2, c=3) == reshape(x, 2, 1, 3, 1)
+        @test einsum(x, fill(2.0), einops"(a b), -> a b"; a=2) == 2 .* expected
+        # The same left tuple describes two grouped axes or two operands by arity.
+        pattern = ((:i,), (:j,)) --> (:i, :j)
+        @test einsum(expected, pattern) == expected
+        @test einsum([1.0, 2.0], [3.0, 4.0, 5.0], pattern) == [1.0, 2.0] * [3.0, 4.0, 5.0]'
+        # The single-input contraction fallback must also retain its grouped axis.
+        diagonal = collect(1.0:9.0)
+        @test only(einsum(diagonal, einops"(i i) ->"; i=3)) == tr(reshape(diagonal, 3, 3))
+    end
+
 end

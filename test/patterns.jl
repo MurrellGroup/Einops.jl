@@ -50,8 +50,14 @@ using Test
         end
 
         @testset "einsum patterns" begin
-            @test einops"i j, j k -> i k" == (((:i, :j), (:j, :k)) --> (:i, :k))
-            @test einops"batch h w, h w channel -> batch channel" == (((:batch, :h, :w), (:h, :w, :channel)) --> (:batch, :channel))
+            @test einops"i j, j k -> i k" === (((:i, :j), (:j, :k)) --> (:i, :k))
+            @test einops"batch h w, h w channel -> batch channel" === (((:batch, :h, :w), (:h, :w, :channel)) --> (:batch, :channel))
+            @test einops"(a b) -> a b" === (((:a, :b),) --> (:a, :b))
+            @test einops"a b -> a b" === ((:a, :b) --> (:a, :b))
+            @test einops", ->" === (((), ()) --> ())
+            @test einops"a, b" === Val(((:a,), (:b,)))
+            @test einops"a _, b" === Val(((:a, -), (:b,)))
+            @test_throws ArgumentError Einops.parse_pattern("a -> a,")
         end
 
         @testset "empty patterns" begin

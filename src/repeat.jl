@@ -71,13 +71,13 @@ function repeat_body(N, left, right, context_names)
     shape_out = get_shape_out(right)
     body = Expr(:block)
     isempty(extra_context) || push!(body.args, :(context = merge(context, $extra_context)))
-    isnothing(shape_in) || push!(body.args, :(x = Rewrap.reshape(x, $shape_in)))
+    isnothing(shape_in) || push!(body.args, :(x = _reshape(x, $shape_in)))
     permutation === ntuple(identity, length(permutation)) || push!(body.args, :(x = $(Rewrap.Permute(permutation))(x)))
     if !all(==(1), repeat_dims)
-        push!(body.args, :(x = Rewrap.reshape(x, $(reshape_pre_repeat(length(left_names), positions)))))
+        push!(body.args, :(x = _reshape(x, $(reshape_pre_repeat(length(left_names), positions)))))
         push!(body.args, :(x = Repeat(($(repeat_dims...),))(x)))
     end
-    isnothing(shape_out) || push!(body.args, :(x = Rewrap.reshape(x, $shape_out)))
+    isnothing(shape_out) || push!(body.args, :(x = _reshape(x, $shape_out)))
     push!(body.args, :x)
     return body
 end
@@ -117,13 +117,13 @@ function repeat_body_ellipsis(L, R, context_names)
 
     body = Expr(:block, ellipsis_m_binding(L))
     isempty(extra_context) || push!(body.args, :(context = merge(context, $extra_context)))
-    isnothing(shape_in) || push!(body.args, :(x = Rewrap.reshape(x, $shape_in)))
+    isnothing(shape_in) || push!(body.args, :(x = _reshape(x, $shape_in)))
     isnothing(perm) || push!(body.args, :(x = $perm))
     if do_repeat
-        push!(body.args, :(x = Rewrap.reshape(x, $pre_repeat)))
+        push!(body.args, :(x = _reshape(x, $pre_repeat)))
         push!(body.args, :(x = Repeat($repeat_tuple)(x)))
     end
-    isnothing(shape_out) || push!(body.args, :(x = Rewrap.reshape(x, $shape_out)))
+    isnothing(shape_out) || push!(body.args, :(x = _reshape(x, $shape_out)))
     push!(body.args, :x)
     return body
 end

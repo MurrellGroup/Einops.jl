@@ -61,6 +61,14 @@ using Zygote
             return sum(result)
         end
         @test gradient(f3, c, d) isa Tuple{AbstractArray{Float32,3}, AbstractArray{Float32,3}}
+
+        # Three operands contract pairwise, and the gradient follows the pairs.
+        x3, y3, z3 = rand(2, 3), rand(3, 4), rand(4, 5)
+        f4(x, y, z) = sum(einsum(x, y, z, einops"i j, j k, k l -> i l"))
+        gx, gy, gz = gradient(f4, x3, y3, z3)
+        @test gx ≈ ones(2, 5) * (y3 * z3)'
+        @test gy ≈ x3' * ones(2, 5) * z3'
+        @test gz ≈ (x3 * y3)' * ones(2, 5)
     end
 
 end
