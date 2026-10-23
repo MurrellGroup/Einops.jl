@@ -87,6 +87,11 @@ include("parse.jl")
 
 For parity with Python implementation.
 
+In a pattern, `1` is an axis of length one, and inside parentheses it adds nothing:
+`(1 b)` is `(b)`. Any other integer is an axis given only by its length, which can be
+reduced (on the left of [`reduce`](@ref)) or created (on the right of [`repeat`](@ref)).
+Integers and names given a length by a keyword have that length checked against the input.
+
 # Examples
 
 ```jldoctest

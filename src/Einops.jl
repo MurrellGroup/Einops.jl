@@ -6,7 +6,7 @@ import Base: reshape, reduce, repeat
 
 using EllipsisNotation; export ..
 using TupleTools: flatten, insertat
-using ChainRulesCore: @ignore_derivatives
+using ChainRulesCore: @ignore_derivatives, @non_differentiable
 using OMEinsum: OMEinsum
 using Rewrap
 using Rewrap: Permute, Reduce, Repeat

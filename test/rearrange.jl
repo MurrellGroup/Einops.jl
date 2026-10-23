@@ -15,7 +15,7 @@ using Test
         @test_throws ["Set of", "does not match"] rearrange(x, (:a, :b, :c) --> (:a, :b, :a))
         @test_throws ["Left names", "not unique"] rearrange(x, (:a, :a, :b) --> (:a, :b))
         @test_throws ["Right names", "not unique"] rearrange(x, (:a, :b, :c) --> (:a, :b, :c, :a))
-        @test_throws "Invalid input dimension" rearrange(x, (:a, :b, (:c, 1)) --> (:a, :b, :c))
+        @test_throws "Invalid dimension" rearrange(x, (:a, :b, ((:c,),)) --> (:a, :b, :c))
     end
 
     @testset "ellipses support" begin
@@ -51,8 +51,8 @@ using Test
     @testset "singleton dimensions" begin
         x = rand(2, 1, 3)
         @test rearrange(x, (:a, 1, :b) --> (:a, :b)) == dropdims(x, dims=2)
-        @test_throws "Singleton dimension size is not 1" rearrange(x, (2, :a, :b) --> (:a, :b))
-        @test_throws "Singleton dimension size is not 1" rearrange(x, (:a, :b, :c) --> (:a, :b, :c, 2))
+        @test_throws "Integer 2 in pattern" rearrange(x, (2, :a, :b) --> (:a, :b))
+        @test_throws "Integer 2 in pattern" rearrange(x, (:a, :b, :c) --> (:a, :b, :c, 2))
 
         x = rand(2, 3)
         @test rearrange(x, (:a, :b) --> (:b, 1, :a)) == reshape(permutedims(x, (2, 1)), 3, 1, 2)
