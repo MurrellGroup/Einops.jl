@@ -123,8 +123,8 @@ Reactant.set_default_backend("cpu")
         k = 2
         interp(x) = Einops.@reduce(sum, x, "($k b) c -> b c")
         @test Array(@jit interp(X)) ≈ reduce(sum, x, einops"(a b) c -> b c"; a=2)
-        bound(x) = rearrange(x, einops"($k b) c -> b c $k")
-        @test Array(@jit bound(X)) ≈ rearrange(x, einops"(a b) c -> b c a"; a=2)
+        bound(x) = repeat(x, einops"a b -> a ($k b)")
+        @test Array(@jit bound(X)) ≈ repeat(x, einops"a b -> a (2 b)")
         wrong(x) = Einops.@reduce(sum, x, "4 c -> c")
         @test_throws DimensionMismatch @jit wrong(X)
     end

@@ -98,10 +98,10 @@ In a pattern, `1` is an axis of length one, and inside parentheses it adds nothi
 reduced (on the left of [`reduce`](@ref)) or created (on the right of [`repeat`](@ref)).
 Integers and names given a length by a keyword have that length checked against the input.
 
-`\$x` interpolates an axis of length `x`, named after the expression: the same expression
-twice is the same axis. The value is not part of the pattern's type, so it may be computed
-at run time without making the pattern's type unknown; the pattern then carries it along
-as a [`BoundPattern`](@ref).
+`\$x` interpolates an axis of length `x`, as if the value were written there: it too can
+only be reduced or created, and each occurrence is an axis of its own. The value is not
+part of the pattern's type, so it may be computed at run time without making the pattern's
+type unknown; the pattern then carries it along as a [`BoundPattern`](@ref).
 
 # Examples
 
@@ -121,10 +121,10 @@ Val{(:a, :b, -, :d)}()
 julia> einops"i j * k" # for pack/unpack
 Val{(:i, :j, *, :k)}()
 
-julia> h = 4;
+julia> k = 2;
 
-julia> rearrange(rand(8, 5), einops"(\$h d) n -> d n \$h") |> size
-(2, 5, 4)
+julia> reduce(sum, rand(4, 6), einops"(h \$k) (w \$k) -> h w") |> size
+(2, 3)
 ```
 """
 macro einops_str(pattern)
@@ -146,7 +146,7 @@ The ops pass the lengths on as keywords, so the values stay out of the type.
 julia> n = 3;
 
 julia> einops"(\$n b) -> b"
-((Symbol("\\\$n"), :b),) --> (:b,) with \$n = 3
+((3, :b),) --> (:b,)
 ```
 """
 struct BoundPattern{P<:ArrowPattern,C<:NamedTuple}
@@ -154,12 +154,11 @@ struct BoundPattern{P<:ArrowPattern,C<:NamedTuple}
     lengths::C
 end
 
+# Shown with the values where they were interpolated, which is what the pattern means.
 function Base.show(io::IO, p::BoundPattern)
-    show(io, p.pattern)
-    for (k, (name, length)) in enumerate(pairs(p.lengths))
-        print(io, k == 1 ? " with " : ", ", name, " = ")
-        show(io, length)
-    end
+    L, R = p.pattern
+    substitute(side) = map(el -> el isa Tuple ? substitute(el) : el isa Symbol ? get(p.lengths, el, el) : el, side)
+    print(io, substitute(L), " --> ", substitute(R))
 end
 
 Base.broadcastable(p::BoundPattern) = Ref(p)

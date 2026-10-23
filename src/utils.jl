@@ -35,17 +35,31 @@ end
 function axis_names(dim)
     dim isa Symbol && return (dim,)
     dim == 1 && return ()
-    dim isa Integer && throw_anonymous_axis(dim)
+    dim isa Integer && throw_anonymous_axis("Integer $dim")
     dim isa Tuple || throw(ArgumentError("Invalid dimension in pattern: $dim"))
     for el in dim
-        el isa Symbol || el == 1 || (el isa Integer ? throw_anonymous_axis(el) : throw(ArgumentError("Invalid dimension in pattern: $dim")))
+        el isa Symbol || el == 1 || (el isa Integer ? throw_anonymous_axis("Integer $el") : throw(ArgumentError("Invalid dimension in pattern: $dim")))
     end
     return filter(el -> el isa Symbol, dim)
 end
 
-throw_anonymous_axis(n) = throw(ArgumentError(
-    "Integer $n in pattern: an axis given only by its length can be reduced (left side of `reduce`) " *
+throw_anonymous_axis(what) = throw(ArgumentError(
+    "$what in pattern: an axis given only by its length can be reduced (left side of `reduce`) " *
     "or created (right side of `repeat`), but not carried through. Name it, and pass its length as a keyword."))
+
+# An axis given only by its length, an integer other than 1 or an interpolated `$x`, on a
+# side where it would have to be carried through rather than reduced or created.
+function reject_anonymous_axes(side)
+    for dim in side
+        if dim isa Tuple
+            reject_anonymous_axes(dim)
+        elseif dim isa Integer && dim != 1
+            throw_anonymous_axis("Integer $dim")
+        elseif dim isa Symbol && is_interpolated(dim)
+            throw_anonymous_axis("`$(interpolated_source(dim))`")
+        end
+    end
+end
 
 # Each input axis whose length the pattern pins down is checked before anything reshapes it,
 # so a wrong length is reported against the pattern instead of surfacing from a reshape, or

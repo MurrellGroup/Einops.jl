@@ -34,7 +34,8 @@ function einops_macro_call(f::Symbol, args)
             if a isa AbstractString
                 pattern = parse_pattern(a)
             else
-                # `$x` names an axis after `x` and passes its value as that name's length
+                # `$x` is a hidden axis of length `x`, its value passed on as a keyword
+                f === :einsum && throw_interpolated_einsum()
                 pattern, interpolated, exprs = parse_interpolated_pattern(a.args)
                 for (name, ex) in zip(interpolated, exprs)
                     push!(names, name); push!(kwentries, Expr(:kw, name, esc(ex)))
@@ -120,9 +121,6 @@ instead of `einops"..."`. The reshape/permute plan is inlined at the call site
 (no `@generated` function, no `Base.Pairs` keyword object) whenever the pattern
 can be sized at macro-expansion time, otherwise it falls back to a `rearrange` call.
 
-A value interpolated with `\$` is an axis of that length, named after the expression,
-as in [`@einops_str`](@ref); the macro passes it on as a keyword.
-
 # Examples
 
 ```jldoctest
@@ -130,11 +128,6 @@ julia> x = rand(2, 3, 5);
 
 julia> @rearrange(x, "a b c -> c b a") == rearrange(x, einops"a b c -> c b a")
 true
-
-julia> h = 2;
-
-julia> @rearrange(rand(6, 5), "(\$h d) n -> d n \$h") |> size
-(3, 5, 2)
 ```
 """
 macro rearrange(args...)
@@ -166,6 +159,9 @@ end
 Shorthand for [`reduce`](@ref) that takes the pattern as a string literal
 instead of `einops"..."`. See [`@rearrange`](@ref) for inlining behaviour.
 
+A value interpolated with `\$` is an axis of that length, as in [`@einops_str`](@ref),
+and the macro passes it on as a keyword.
+
 # Examples
 
 ```jldoctest
@@ -173,6 +169,11 @@ julia> x = rand(2, 3);
 
 julia> @reduce(sum, x, "a b -> a") == reduce(sum, x, einops"a b -> a")
 true
+
+julia> k = 2;
+
+julia> @reduce(sum, rand(4, 6), "(h \$k) (w \$k) -> h w") |> size
+(2, 3)
 ```
 """
 macro reduce(args...)
@@ -185,6 +186,9 @@ end
 Shorthand for [`repeat`](@ref) that takes the pattern as a string literal
 instead of `einops"..."`. See [`@rearrange`](@ref) for inlining behaviour.
 
+A value interpolated with `\$` is an axis of that length, as in [`@einops_str`](@ref),
+and the macro passes it on as a keyword.
+
 # Examples
 
 ```jldoctest
@@ -192,6 +196,11 @@ julia> x = rand(2, 3);
 
 julia> @repeat(x, "a b -> a b c", c=4) == repeat(x, einops"a b -> a b c", c=4)
 true
+
+julia> k = 2;
+
+julia> @repeat(x, "a b -> (\$k a) (\$k b)") |> size
+(4, 6)
 ```
 """
 macro repeat(args...)

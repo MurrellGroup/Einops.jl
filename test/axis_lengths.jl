@@ -67,30 +67,40 @@ using Test
         k = 2
         p = einops"($k b) c -> b c"
         @test p isa Einops.BoundPattern
-        @test sprint(show, p) == """((Symbol("\\\$k"), :b), :c) --> (:b, :c) with \$k = 2"""
-        @test reduce(sum, x, p) == reduce(sum, x, einops"(a b) c -> b c"; a=2)
+        # it stands for the value, as if written there
+        @test sprint(show, p) == "((2, :b), :c) --> (:b, :c)"
+        @test reduce(sum, x, p) == reduce(sum, x, einops"(2 b) c -> b c")
         @test @reduce(sum, x, "($k b) c -> b c") == reduce(sum, x, p)
         # an expression, evaluated where the pattern is
-        @test repeat(x, einops"a b -> a b $(k + 1)") == repeat(x, einops"a b -> a b r"; r=3)
-        @test @repeat(x, "a b -> a b $(k + 1)") == repeat(x, einops"a b -> a b r"; r=3)
-        # the same expression twice is the same axis, so it can be kept
-        h = 3
-        ref = rearrange(x, einops"(h d) n -> d n h"; h=3)
-        @test rearrange(x, einops"($h d) n -> d n $h") == ref
-        @test @rearrange(x, "($h d) n -> d n $h") == ref
-        @test @reshape(x, "($k b) c -> $k (b c)") == reshape(x, 2, 12)
-        # ...and an expression twice on one side is a repeated name
-        @test_throws "not unique" rearrange(rand(2, 2), einops"$k $k -> $k")
-        # it broadcasts like a pattern
-        y = rearrange(x, einops"(k b) c -> b c k"; k=2)
-        @test rearrange.((x, x), einops"($k b) c -> b c $k") == (y, y)
-        # einsum takes it too
+        @test repeat(x, einops"a b -> a b $(k + 1)") == repeat(x, einops"a b -> a b 3")
+        @test @repeat(x, "a b -> a b $(k + 1)") == repeat(x, einops"a b -> a b 3")
+        # each occurrence is an axis of its own (#36)
+        y = reshape(collect(1.0:16), 4, 4)
+        @test @reduce(sum, y, "(h $k) (w $k) -> h w") == reduce(sum, y, einops"(h 2) (w 2) -> h w")
+        @test reduce(sum, y, einops"(h $k) (w $k) -> h w") == reduce(sum, y, einops"(h 2) (w 2) -> h w")
+        @test @repeat(x, "a b -> ($k a) ($k b)") == repeat(x, einops"a b -> (2 a) (2 b)")
+        @test repeat(x, einops"a b -> ($k a) ($k b)") == repeat(x, einops"a b -> (2 a) (2 b)")
+        # a length of one is still an axis of length one, reduced or created
+        one = 1
+        @test @reduce(sum, rand(1, 3), "$one b -> b") |> size == (3,)
+        @test @repeat(rand(3), "b -> b $one") |> size == (3, 1)
+        # like an integer, it can't be carried through, whatever its value
+        @test_throws "`\$k` in pattern" rearrange(x, einops"($k d) n -> d n $k")
+        @test_throws "`\$k` in pattern" @macroexpand @rearrange(x, "($k d) n -> d n $k")
+        @test_throws "`\$one` in pattern" @macroexpand @rearrange(x, "a b -> a b $one")
+        @test_throws "`\$k` in pattern" reshape(x, einops"($k b) c -> $k (b c)")
+        @test_throws "`\$k` in pattern" @macroexpand @reduce(sum, x, "a b -> a $k")
+        @test_throws "`\$(k + 1)` in pattern" @macroexpand @repeat(x, "($(k + 1) a) b -> a b")
+        # einsum could only sum such an axis out, which a name does too
         A, B = rand(6, 3), rand(3, 5)
-        @test einsum(A, B, einops"($k i) j, j l -> i l") ≈ reduce(sum, A * B, einops"(a i) l -> i l"; a=2)
-        @test @einsum(A, B, "($k i) j, j l -> i l") ≈ reduce(sum, A * B, einops"(a i) l -> i l"; a=2)
+        @test_throws "takes no interpolated lengths" einsum(A, B, einops"($k i) j, j l -> i l")
+        @test_throws "takes no interpolated lengths" @macroexpand @einsum(A, B, "($k i) j, j l -> i l")
+        # it broadcasts like a pattern
+        z = reduce(sum, x, einops"(2 b) c -> b c")
+        @test reduce.(sum, (x, x), einops"($k b) c -> b c") == (z, z)
         # interpolated lengths are checked like any other
-        @test_throws "expects a multiple of 4 (\$(k + 2) = 4)" reduce(sum, x, einops"($(k + 2) b) c -> b c")
-        @test_throws "expects 2 (\$k = 2)" @reduce(sum, x, "$k b -> b")
+        @test_throws "expects a multiple of 4" reduce(sum, x, einops"($(k + 2) b) c -> b c")
+        @test_throws "Input axis 1 has length 6, but the pattern expects 2" @reduce(sum, x, "$k b -> b")
         # only arrow patterns take it, and `$` needs something to interpolate
         @test_throws "only supported in patterns with `->`" Einops.parse_interpolated_pattern(Einops.interpolation_parts("a \$k"))
         @test_throws "must be followed by" Einops.interpolation_parts("a \$ b -> a")
@@ -100,10 +110,10 @@ using Test
         x = rand(6, 4)
         f(x, n) = reduce(sum, x, einops"($n b) c -> b c")
         g(x, n) = @reduce(sum, x, "($n b) c -> b c")
-        r(x, n) = rearrange(x, einops"($n d) c -> d c $n")
-        @test (@inferred f(x, 3)) == reduce(sum, x, einops"(a b) c -> b c"; a=3)
-        @test (@inferred g(x, 2)) == reduce(sum, x, einops"(a b) c -> b c"; a=2)
-        @test (@inferred r(x, 3)) |> size == (2, 4, 3)
+        r(x, n) = repeat(x, einops"a b -> a ($n b)")
+        @test (@inferred f(x, 3)) == reduce(sum, x, einops"(3 b) c -> b c")
+        @test (@inferred g(x, 2)) == reduce(sum, x, einops"(2 b) c -> b c")
+        @test (@inferred r(x, 3)) == repeat(x, einops"a b -> a (3 b)")
         # an integer in a tuple pattern lives in its type, which is what the above avoids
         h(x, n) = reduce(sum, x, ((n, :b), :c) --> (:b, :c))
         @test h(x, 3) == f(x, 3)

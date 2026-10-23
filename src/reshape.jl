@@ -33,6 +33,7 @@ Base.reshape(x, p::BoundPattern; context...) = reshape(x, p.pattern; p.lengths..
 
 # See `rearrange_body` for the shared conventions.
 function reshape_body(N, left, right, context_names)
+    reject_anonymous_axes(left); reject_anonymous_axes(right)
     left_symbols = extract(Symbol, left)
     right_symbols = extract(Symbol, right)
     left_symbols == right_symbols || throw(ArgumentError("reshape requires symbols in same order on both sides. Got $left_symbols vs $right_symbols. Use rearrange for permutations."))
@@ -47,6 +48,7 @@ end
 
 # Ellipsis variant; see `rearrange_body_ellipsis`.
 function reshape_body_ellipsis(L, R, context_names)
+    reject_anonymous_axes(L); reject_anonymous_axes(R)
     left = replace_ellipsis_placeholder(L)
     right = replace_ellipsis_placeholder(R)
     m = ELLIPSIS_M

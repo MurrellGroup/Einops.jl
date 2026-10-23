@@ -62,6 +62,7 @@ repeat(x::AbstractArray, p::BoundPattern; context...) = repeat(x, p.pattern; p.l
 
 # See `rearrange_body` for the shared conventions.
 function repeat_body(N, left, right, context_names)
+    reject_anonymous_axes(left)
     right, extra_context = remove_anonymous_dims(right)
     left_names, right_names = extract(Symbol, left), extract(Symbol, right)
     repeat_names = setdiff(right_names, left_names)
@@ -89,6 +90,7 @@ end
 # Ellipsis variant; see `rearrange_body_ellipsis`. Ellipsis dims are kept (never
 # repeated), so their `Repeat` factor slot expands to a run of 1's.
 function repeat_body_ellipsis(L, R, context_names)
+    reject_anonymous_axes(L)
     left = replace_ellipsis_placeholder(L)
     right = replace_ellipsis_placeholder(R)
     m = ELLIPSIS_M

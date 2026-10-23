@@ -50,6 +50,7 @@ reduce(f::Function, x, p::BoundPattern; context...) = reduce(f, x, p.pattern; p.
 
 # See `rearrange_body` for the shared conventions; also operates on `f`.
 function reduce_body(N, left, right, context_names)
+    reject_anonymous_axes(right)
     left, extra_context = remove_anonymous_dims(left)
     left_names, right_names = extract(Symbol, left), extract(Symbol, right)
     isempty(setdiff(right_names, left_names)) || throw(ArgumentError("All dimension names on right side of pattern must be present on left side: $(setdiff(right_names, left_names))"))
@@ -72,6 +73,7 @@ end
 
 # Ellipsis variant; see `rearrange_body_ellipsis`. Ellipsis dims are kept, never reduced.
 function reduce_body_ellipsis(L, R, context_names)
+    reject_anonymous_axes(R)
     left = replace_ellipsis_placeholder(L)
     right = replace_ellipsis_placeholder(R)
     m = ELLIPSIS_M

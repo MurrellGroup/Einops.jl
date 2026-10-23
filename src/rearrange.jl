@@ -41,6 +41,7 @@ rearrange(x, p::BoundPattern; context...) = rearrange(x, p.pattern; p.lengths...
 # `rearrange`'s plan, factored out so `@rearrange` can splice it inline. `left`/`right`
 # are ellipsis-resolved for `N`; the block operates on `x`/`context` and returns `x`.
 function rearrange_body(N, left, right, context_names)
+    reject_anonymous_axes(left); reject_anonymous_axes(right)
     shape_in = get_shape_in(N, left, context_names)
     permutation = get_permutation(extract(Symbol, left), extract(Symbol, right))
     shape_out = get_shape_out(right)
@@ -55,6 +56,7 @@ end
 # Ellipsis variant: rank is unknown at expansion, so the ellipsis run folds to `Keep(m)`
 # and the permutation expands via `Val(ndims(x))` (staging helpers in `utils.jl`).
 function rearrange_body_ellipsis(L, R, context_names)
+    reject_anonymous_axes(L); reject_anonymous_axes(R)
     left = replace_ellipsis_placeholder(L)
     right = replace_ellipsis_placeholder(R)
     m = ELLIPSIS_M

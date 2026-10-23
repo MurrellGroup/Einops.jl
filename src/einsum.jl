@@ -31,7 +31,12 @@ function _einsum(pattern::ArrowPattern, arrays::Vararg{AbstractArray}; optimizer
     return _contract_einsum(pattern, arrays...; optimizer, context...)
 end
 
-_einsum(p::BoundPattern, arrays::Vararg{AbstractArray}; context...) = _einsum(p.pattern, arrays...; p.lengths..., context...)
+_einsum(::BoundPattern, ::Vararg{AbstractArray}; context...) = throw_interpolated_einsum()
+
+# An axis given only by its length could only be summed out, which a named axis does too.
+throw_interpolated_einsum() = throw(ArgumentError(
+    "`einsum` takes no interpolated lengths: an axis given only by its length could only be summed out, " *
+    "which a named axis does too. Name it, and pass its length as a keyword."))
 
 function _contract_einsum(
     ::ArrowPattern{L,R}, arrays::Vararg{AbstractArray};

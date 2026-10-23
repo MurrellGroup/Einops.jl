@@ -202,14 +202,14 @@ reshape(
 
 ## Axis lengths
 
-A keyword gives a name its length, and `$` interpolates one in place, naming the axis after the expression. Either way the value stays out of the pattern's type, so it can be computed at run time:
+A keyword gives a name its length. An integer is an axis known only by its length: `1` is an axis of length one (inside parentheses it adds nothing), and any other integer can be reduced by `@reduce` or created by `@repeat`. `$` interpolates such a length, as if the value were written there, while keeping it out of the pattern's type, so it can be computed at run time:
 
 ```julia
 @rearrange(q, "(d h) l b -> d l h b"; d=head_dim)
-@rearrange(q, "($head_dim h) l b -> $head_dim l h b")
+@reduce(mean, x, "(h $k) (w $k) c -> h w c")  # k×k average pooling
 ```
 
-Integers fix a length too: `1` is an axis of length one (inside parentheses it adds nothing), and any other integer is an axis known only by its length, which `@reduce` can sum over and `@repeat` can create. Every length a pattern fixes is checked against the input:
+Every length a pattern fixes is checked against the input:
 
 ```julia
 julia> @reduce(sum, rand(3, 2), "4 b -> b")

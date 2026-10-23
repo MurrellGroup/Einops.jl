@@ -79,9 +79,11 @@ tokenize_generic(pattern) = Val(map_special_tokens(tokenize_side(pattern)))
 
 # === Interpolation ===
 #
-# `$x` in a pattern is an axis of length `x`. The value stays out of the pattern's type: the
-# axis is named after the expression, as `$x`, and the value goes along as that name's length,
-# the way a keyword would. The same expression twice is the same axis, like any name.
+# `$x` in a pattern is an axis of length `x` and nothing more, as if the value were written
+# there: like an integer other than 1, it can be reduced or created but not carried through,
+# and each occurrence is an axis of its own. The value stays out of the pattern's type: the
+# axis gets a hidden name, and the value goes along as that name's length, the way a keyword
+# would.
 
 # A raw string's literal parts and the expressions it interpolates with `$`, the way Julia's
 # parser splits a string literal in code (which hands the macros the same parts).
@@ -108,16 +110,20 @@ end
 
 interpolation_placeholder(k) = Symbol("__interp_", k, "__")
 
-# Returns the pattern, the name of each distinct interpolated expression, and the expressions.
+# The hidden name keeps the source, `$x`, for messages, and a count that makes it unique.
+interpolated_name(ex, k) = Symbol("__\$", ex isa Symbol ? ex : "($ex)", "#", k)
+is_interpolated(name::Symbol) = startswith(String(name), "__\$")
+interpolated_source(name::Symbol) = (s = String(name); s[3:prevind(s, findlast('#', s))])
+
+# Returns the pattern, and the name and expression of each interpolation.
 function parse_interpolated_pattern(parts)
     names, exprs = Symbol[], Any[]
     str = sprint() do io
         for part in parts
             part isa AbstractString && (print(io, part); continue)
-            name = Symbol('$', part isa Symbol ? part : "($part)")
-            k = findfirst(==(name), names)
-            isnothing(k) && (push!(names, name); push!(exprs, part); k = length(names))
-            print(io, ' ', interpolation_placeholder(k), ' ')
+            push!(exprs, part)
+            push!(names, interpolated_name(part, length(exprs)))
+            print(io, ' ', interpolation_placeholder(length(exprs)), ' ')
         end
     end
     pattern = parse_pattern(str)
