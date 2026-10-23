@@ -68,7 +68,7 @@ using Test
         p = einops"($k b) c -> b c"
         @test p isa Einops.BoundPattern
         # it stands for the value, as if written there
-        @test sprint(show, p) == "((2, :b), :c) --> (:b, :c)"
+        @test sprint(show, p) == "einops\"(2 b) c -> b c\""
         @test reduce(sum, x, p) == reduce(sum, x, einops"(2 b) c -> b c")
         @test @reduce(sum, x, "($k b) c -> b c") == reduce(sum, x, p)
         # an expression, evaluated where the pattern is
@@ -114,8 +114,8 @@ using Test
         @test (@inferred f(x, 3)) == reduce(sum, x, einops"(3 b) c -> b c")
         @test (@inferred g(x, 2)) == reduce(sum, x, einops"(2 b) c -> b c")
         @test (@inferred r(x, 3)) == repeat(x, einops"a b -> a (3 b)")
-        # an integer in a tuple pattern lives in its type, which is what the above avoids
-        h(x, n) = reduce(sum, x, ((n, :b), :c) --> (:b, :c))
+        # an integer put in a pattern's type is what the above avoids
+        h(x, n) = reduce(sum, x, Einops.ArrowPattern{((n, :b), :c), (:b, :c)}())
         @test h(x, 3) == f(x, 3)
         @test_throws ErrorException @inferred h(x, 3)
     end

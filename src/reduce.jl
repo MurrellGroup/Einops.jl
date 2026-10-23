@@ -1,5 +1,5 @@
 """
-    reduce(f::Function, x::AbstractArray, left --> right; context...)
+    reduce(f::Function, x::AbstractArray, pattern::ArrowPattern; context...)
 
 Reduce an array over the dimensions specified by the pattern,
 using e.g. `sum`, `prod`, `minimum`, `maximum`, `any`, `all`, or `Statistics.mean`.
@@ -28,7 +28,7 @@ true
 
 julia> using Statistics: mean
 
-julia> z = reduce(mean, x, (:c, :b, (:t5, :t)) --> ((:t5, :c), :b), t5=5);
+julia> z = reduce(mean, x, einops"c b (t5 t) -> (t5 c) b", t5=5);
 
 julia> size(z)
 (320, 32)

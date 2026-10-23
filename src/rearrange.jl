@@ -1,7 +1,7 @@
 """
-    rearrange(x, left --> right; context...)
+    rearrange(x, pattern::ArrowPattern; context...)
 
-Rearrange the axes of `x` according to the pattern specified by `left --> right`.
+Rearrange the axes of `x` according to `pattern`.
 
 Can always be expressed as a `reshape` + `permutedims` + `reshape`.
 
@@ -18,7 +18,7 @@ julia> size(y)
 julia> y == permutedims(x, (3,2,1))
 true
 
-julia> z = rearrange(x, (:a, :b, :c) --> (:a, (:c, :b)));
+julia> z = rearrange(x, einops"a b c -> a (c b)");
 
 julia> size(z)
 (2, 15)

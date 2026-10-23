@@ -1,7 +1,30 @@
 include("utils.jl")
 
-const ArrowPatternSideNestedTuple = Tuple{Vararg{Union{Symbol,Int,EllipsisNotation.Ellipsis}}}
-const ArrowPatternSide = Tuple{Vararg{Union{Symbol,Int,EllipsisNotation.Ellipsis,ArrowPatternSideNestedTuple}}}
+# The `...` of a pattern, standing for any number of axes.
+struct Ellipsis end
+
+# The operands of an einsum pattern, which commas separate: the left side of
+# `einops"i j, j k -> i k"` is `List{((:i, :j), (:j, :k))}()`. A pattern without commas has
+# one operand, whose tuple is the left side itself, so a list always holds at least two.
+# It iterates and indexes like the tuple it holds.
+struct List{items}
+    function List{items}() where {items}
+        items isa Tuple && length(items) >= 2 && all(is_valid_side, items) ||
+            throw(ArgumentError("A list of operands holds two or more pattern sides, not $items"))
+        new{items}()
+    end
+end
+
+Base.Tuple(::List{items}) where {items} = items
+Base.length(::List{items}) where {items} = length(items)
+Base.eltype(::Type{<:List}) = Tuple
+Base.getindex(::List{items}, i) where {items} = items[i]
+Base.iterate(l::List, i=1) = i > length(l) ? nothing : (l[i], i + 1)
+Base.map(f, l::List) = map(f, Tuple(l))
+
+throw_operand_list(L::List) = throw(ArgumentError(
+    "The pattern lists $(length(L)) operands, separated by commas, which only `einsum` takes. " *
+    "Every other operation takes one array."))
 
 function is_valid_side(x)
     x isa Tuple || return false
@@ -9,7 +32,7 @@ function is_valid_side(x)
         if el isa Tuple
             # allow arbitrarily nested tuples by recursive check
             is_valid_side(el) || return false
-        elseif !(el isa Symbol || el isa Int || el isa EllipsisNotation.Ellipsis)
+        elseif !(el isa Symbol || el isa Int || el isa Ellipsis)
             return false
         end
     end
@@ -21,69 +44,54 @@ check_side(x) = is_valid_side(x) || throw(ArgumentError("Invalid pattern: $x. Tu
 """
     ArrowPattern{L,R}
 
-The left and right tuples of a pattern, stored as type parameters so the pattern
-is known at compile time. For einsum with one array, the left tuple describes its
-axes; with multiple arrays, it contains one axis-pattern tuple per array.
+The left and right sides of a pattern, made by [`@einops_str`](@ref) and stored as type
+parameters, so the pattern is known at compile time. A side is a tuple: a name is a
+`Symbol`, a group a nested tuple, and `...` an `Einops.Ellipsis()`. When commas separate
+the operands of an einsum, the left side is an `Einops.List` of one such tuple per operand.
 
-An instance `ArrowPattern{L,R}()` gets shown as `L --> R`, as [`-->`](@ref) is used for construction.
+A pattern shows as the `einops"..."` string that makes it.
+
+# Examples
+
+```jldoctest
+julia> p = einops"a b c -> c (b a)"
+einops"a b c -> c (b a)"
+
+julia> typeof(p)
+Einops.ArrowPattern{(:a, :b, :c), (:c, (:b, :a))}
+```
+
+!!! note
+    A pattern lives in its type, integers included. To give an axis a length computed at
+    run time, name the axis and pass its length as a keyword, or interpolate the length
+    with `\$` (see [`@einops_str`](@ref)), which keeps the value out of the type.
 """
 struct ArrowPattern{L,R}
     function ArrowPattern{L,R}() where {L,R}
-        check_side(L)
+        L isa List || check_side(L)
         check_side(R)
         new{L,R}()
     end
 end
 
-Base.show(io::IO, ::ArrowPattern{L,R}) where {L,R} = print(io, "$L --> $R")
 Base.iterate(::ArrowPattern{L,R}) where {L,R} = (L, Val(:L))
 Base.iterate(::ArrowPattern{L,R}, ::Val{:L}) where {L,R} = (R, Val(:R))
 Base.iterate(::ArrowPattern{L,R}, ::Val{:R}) where {L,R} = nothing
 
-# `q, k = rearrange.((q, k), ((:d, :h) ..) --> (:d, :h, ..))`
+# `q, k = rearrange.((q, k), einops"(d h) ... -> d h ..."; h)`
 Base.broadcastable(p::ArrowPattern) = Ref(p)
 
-"""
-    -->
+Base.show(io::IO, ::ArrowPattern{L,R}) where {L,R} = print(io, pattern_string(L, R))
 
-Create an [`ArrowPattern`](@ref) from a left and right tuple.
-Non-tuple elements are automatically wrapped in a single-element tuple.
-For einsum with multiple arrays, the left tuple contains one pattern per array.
-With one array, the entire left tuple describes its axes: nested tuples group axes,
-and there is no additional one-element operand-list wrapper.
+# The `einops"..."` string that makes a pattern with these sides, with each name spelled as
+# `f` turns it.
+function pattern_string(L, R, f=identity)
+    left = L isa List ? rstrip(join(map(op -> spell_side(op, f), L), ", ")) : spell_side(L, f)
+    return string("einops\"", left, isempty(left) ? "" : " ", "->", isempty(R) ? "" : " ", spell_side(R, f), "\"")
+end
 
-# Examples
-
-```jldoctest
-julia> pattern1 = (:a, :b, :c) --> (:c, (:b, :a)) # nested tuple
-(:a, :b, :c) --> (:c, (:b, :a))
-
-julia> typeof(pattern1)
-Einops.ArrowPattern{(:a, :b, :c), (:c, (:b, :a))}
-
-julia> pattern2 = :a --> (1, :a) # single-element autoconversion
-(:a,) --> (1, :a)
-
-julia> typeof(pattern2)
-Einops.ArrowPattern{(:a,), (1, :a)}
-
-julia> (:a, ..) --> :a # exported ellipsis notation
-(:a, EllipsisNotation.Ellipsis()) --> (:a,)
-```
-
-!!! note
-    A pattern lives in its type, integers included, so an integer computed at run time
-    gives a pattern whose type is only known at run time. Name the axis and pass its
-    length as a keyword, or interpolate it into a string pattern (see [`@einops_str`](@ref)),
-    which keeps the value out of the type.
-"""
-function --> end
-
-(-->)(L::Tuple, R::Tuple) = ArrowPattern{L, R}()
-(-->)(L::Tuple, R) = L --> (R,)
-(-->)(L, R::Tuple) = (L,) --> R
-(-->)(L, R) = (L,) --> (R,)
-
+spell_side(side, f) = join(map(dim -> spell_axis(dim, f), side), " ")
+spell_axis(dim, f) = dim isa Tuple ? string("(", spell_side(dim, f), ")") : dim isa Ellipsis ? "..." : string(dim isa Symbol ? f(dim) : dim)
 
 include("ellipses.jl")
 include("parse.jl")
@@ -106,14 +114,14 @@ type unknown; the pattern then carries it along as a [`BoundPattern`](@ref).
 # Examples
 
 ```jldoctest
-julia> einops"a 1 b c -> (c b) a"
-(:a, 1, :b, :c) --> ((:c, :b), :a)
-
 julia> einops"embed token (head batch) -> (embed head) token batch"
-(:embed, :token, (:head, :batch)) --> ((:embed, :head), :token, :batch)
+einops"embed token (head batch) -> (embed head) token batch"
+
+julia> typeof(einops"a 1 b ... -> (b a) ...")
+Einops.ArrowPattern{(:a, 1, :b, Einops.Ellipsis()), ((:b, :a), Einops.Ellipsis())}
 
 julia> einops"i j, j k -> i k" # for einsum
-((:i, :j), (:j, :k)) --> (:i, :k)
+einops"i j, j k -> i k"
 
 julia> einops"a b _ d" # for parse_shape
 Val{(:a, :b, -, :d)}()
@@ -146,7 +154,7 @@ The ops pass the lengths on as keywords, so the values stay out of the type.
 julia> n = 3;
 
 julia> einops"(\$n b) -> b"
-((3, :b),) --> (:b,)
+einops"(3 b) -> b"
 ```
 """
 struct BoundPattern{P<:ArrowPattern,C<:NamedTuple}
@@ -157,8 +165,7 @@ end
 # Shown with the values where they were interpolated, which is what the pattern means.
 function Base.show(io::IO, p::BoundPattern)
     L, R = p.pattern
-    substitute(side) = map(el -> el isa Tuple ? substitute(el) : el isa Symbol ? get(p.lengths, el, el) : el, side)
-    print(io, substitute(L), " --> ", substitute(R))
+    print(io, pattern_string(L, R, name -> get(p.lengths, name, name)))
 end
 
 Base.broadcastable(p::BoundPattern) = Ref(p)

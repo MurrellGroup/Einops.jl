@@ -17,7 +17,7 @@ function reshape_pre_repeat(N, positions)
 end
 
 """
-    repeat(x::AbstractArray, left --> right; context...)
+    repeat(x::AbstractArray, pattern::ArrowPattern; context...)
 
 Repeat elements of `x` along specified axes.
 
@@ -34,7 +34,7 @@ julia> size(y)
 julia> y == reshape(repeat(x, 1,1,2), 2,3,1,2)
 true
 
-julia> z = repeat(x, (:a, :b) --> (:a, (:b, :r)), r=2);
+julia> z = repeat(x, einops"a b -> a (b r)", r=2);
 
 julia> size(z)
 (2, 6)

@@ -12,13 +12,13 @@ using Test
 
 @eval Einops begin
     _cov_rearrange(x)     = (context = (; a=2); $(rearrange_body(2, ((:a,:b),:c), (:c,(:a,:b)), (:a,))))
-    _cov_rearrange_ell(x) =                     $(rearrange_body_ellipsis((:a, .., :b), (:a, (:b, ..)), ()))
+    _cov_rearrange_ell(x) =                     $(rearrange_body_ellipsis((:a, Einops.Ellipsis(), :b), (:a, (:b, Einops.Ellipsis())), ()))
     _cov_reshape(x)       =                     $(reshape_body(3, (:a,:b,:c), ((:a,:b),:c), ()))
-    _cov_reshape_ell(x)   = (context = (; a=2); $(reshape_body_ellipsis((1, (:a,:b), ..), (:a, (:b, ..)), (:a,))))
+    _cov_reshape_ell(x)   = (context = (; a=2); $(reshape_body_ellipsis((1, (:a,:b), Einops.Ellipsis()), (:a, (:b, Einops.Ellipsis())), (:a,))))
     _cov_reduce(f, x)     =                     $(reduce_body(3, (:a,:b,:c), (:a,:c), ()))
-    _cov_reduce_ell(f, x) =                     $(reduce_body_ellipsis((:c, .., :t), (:c, ..), ()))
+    _cov_reduce_ell(f, x) =                     $(reduce_body_ellipsis((:c, Einops.Ellipsis(), :t), (:c, Einops.Ellipsis()), ()))
     _cov_repeat(x)        = (context = (; r=2); $(repeat_body(2, (:a,:b), (:a,:b,:r), (:r,))))
-    _cov_repeat_ell(x)    = (context = (; r=2); $(repeat_body_ellipsis((:a, ..), (:a, .., :r), (:r,))))
+    _cov_repeat_ell(x)    = (context = (; r=2); $(repeat_body_ellipsis((:a, Einops.Ellipsis()), (:a, Einops.Ellipsis(), :r), (:r,))))
 end
 
 @testset "plan builders" begin

@@ -20,9 +20,9 @@ end
 # Einops' own `reduce` lowers to a reshape, a sum and a permute with static shapes.
 # OMEinsum keeps the rest (traces and diagonals).
 function _einsum(pattern::ArrowPattern{L,R}, x::AbstractArray; optimizer=nothing, context...) where {L,R}
-    left, right = extract(Symbol, L), extract(Symbol, R)
-    if allunique(left) && issubset(right, left)
-        return reduce(sum, x, pattern; context...)
+    if !(L isa List)
+        left, right = extract(Symbol, L), extract(Symbol, R)
+        allunique(left) && issubset(right, left) && return reduce(sum, x, pattern; context...)
     end
     return _contract_einsum(pattern, x; optimizer, context...)
 end
@@ -43,12 +43,13 @@ function _contract_einsum(
     optimizer::Union{Nothing,OMEinsum.CodeOptimizer} = nothing,
     context...
 ) where {L,R}
-    # Arity distinguishes one array's grouped axes from multiple operand patterns.
-    operands = length(arrays) == 1 ? (L,) : L
-    operands isa Tuple{Vararg{Tuple}} || throw(ArgumentError("Multiple arrays require one axis-pattern tuple per operand"))
-    length(operands) == length(arrays) || throw(ArgumentError("Expected $(length(operands)) operands, got $(length(arrays))"))
+    # Commas make a list of operands; without them, the left side is the one operand.
+    operands = L isa List ? Tuple(L) : (L,)
+    length(operands) == length(arrays) || throw(ArgumentError(
+        "The pattern has $(length(operands)) operand$(length(operands) == 1 ? "" : "s"), " *
+        "but $(length(arrays)) array$(length(arrays) == 1 ? " was" : "s were") given"))
     # Replace ellipses in operand patterns using per-array ranks
-    L′, R′ = @ignore_derivatives replace_ellipses_einsum(operands --> R, Val(ndims.(arrays)))
+    L′, R′ = @ignore_derivatives replace_ellipses_einsum(Val(operands), Val(R), Val(ndims.(arrays)))
 
     # Infer dimension sizes from patterns and merge with user context
     inferred = merge(parse_shape.(arrays, Val.(operands))...)
@@ -72,10 +73,7 @@ This function supports rearrange-style grouped axes, and can in some cases
 automatically resolve size ambiguities.
 Note that upstream Python `einops.einsum` does not yet do this (as of 0.8.1).
 
-Commas in string patterns separate operands, including empty patterns for scalar
-arrays. In the tuple API, one array uses the entire left tuple as its axis pattern;
-multiple arrays use one axis-pattern tuple per array. There is no one-element
-operand-list wrapper: `((:a, :b),)` means a grouped axis for a single array.
+Commas in patterns separate operands, including empty patterns for scalar arrays.
 
 !!! note
     This function is not type stable.
@@ -85,7 +83,7 @@ operand-list wrapper: `((:a, :b),)` means a grouped axis for a single array.
 ```jldoctest
 julia> x, y = rand(2,3), rand(3,4);
 
-julia> einsum(x, y, ((:i, :j), (:j, :k)) --> (:i, :k)) == x * y
+julia> einsum(x, y, einops"i j, j k -> i k") == x * y
 true
 ```
 """

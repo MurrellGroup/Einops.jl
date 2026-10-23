@@ -4,7 +4,6 @@ using Republic: @public
 
 import Base: reshape, reduce, repeat
 
-using EllipsisNotation; export ..
 using TupleTools: flatten, insertat
 using ChainRulesCore: @ignore_derivatives, @non_differentiable
 using OMEinsum: OMEinsum
@@ -15,7 +14,7 @@ include("utils.jl")
 
 include("patterns/patterns.jl")
 @public ArrowPattern, BoundPattern
-export -->, @einops_str
+export @einops_str
 
 include("parse_shape.jl")
 export parse_shape

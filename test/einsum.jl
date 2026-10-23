@@ -5,7 +5,7 @@ using Test, LinearAlgebra
     @testset "basic einsum" begin
         a = rand(2, 3, 5)
         b = rand(3, 4, 5)
-        @test einsum(a, b, ((:i, :j, :b), (:j, :k, :b)) --> (:i, :k, :b)) == stack([a * b for (a, b) in zip(eachslice(a, dims=3), eachslice(b, dims=3))])
+        @test einsum(a, b, einops"i j b, j k b -> i k b") == stack([a * b for (a, b) in zip(eachslice(a, dims=3), eachslice(b, dims=3))])
     end
 
     @testset "trace operations" begin
@@ -116,41 +116,43 @@ end
 
     @testset "explicit single operand and scalar operands" begin
         x = rand(2, 3)
-        @test einsum(x, (:i, :j) --> (:i,)) == vec(sum(x; dims=2))
-        @test einsum(x, (:i, ..) --> (:i,)) == vec(sum(x; dims=2))
-        @test einsum(x, ((:a, :b), :j) --> (:b,); a=2) ==
+        @test einsum(x, einops"i j -> i") == vec(sum(x; dims=2))
+        @test einsum(x, einops"i ... -> i") == vec(sum(x; dims=2))
+        @test einsum(x, einops"(a b) j -> b"; a=2) ==
               reduce(sum, x, einops"(a b) j -> b"; a=2)
         scalar = fill(3.0)
-        @test einsum(scalar, () --> ()) == scalar
-        @test_throws ArgumentError einsum(scalar, ((),) --> ())
-        @test einops"a, -> a" === (((:a,), ()) --> (:a,))
-        @test einops"a, a, -> a" === (((:a,), (:a,), ()) --> (:a,))
+        @test einsum(scalar, einops"->") == scalar
+        @test_throws ArgumentError einsum(scalar, einops"() ->")
+        @test einops"a, -> a" === (einops"a, -> a")
+        @test einops"a, a, -> a" === (einops"a, a, -> a")
         v = [1.0, 2.0]
         @test einsum(v, scalar, einops"a, -> a") == 3 .* v
         @test einsum(scalar, v, einops", a -> a") == 3 .* v
         @test einsum(v, v, scalar, einops"a, a, -> a") == 3 .* v .* v
         @test einsum(scalar, scalar, einops", ->") == fill(9.0)
         @test_throws ArgumentError einsum(v, einops"a, -> a")
-        @test einsum(x, x, ((:i, :j), (:i, :j)) --> (:i,)) ≈ vec(sum(x .* x; dims=2))
-        @test_throws ArgumentError einsum(x, x, (:i, :j) --> (:i,))
+        @test einsum(x, x, einops"i j, i j -> i") ≈ vec(sum(x .* x; dims=2))
+        @test_throws ArgumentError einsum(x, x, einops"i j -> i")
         @test_throws ArgumentError einsum(v, v, scalar, einops"a, a -> a")
     end
 
-    @testset "arity distinguishes groups from operand lists" begin
+    @testset "commas, not arity, make operand lists" begin
         x = collect(1.0:6.0)
         expected = reshape(x, 2, 3)
         @test einsum(x, einops"(a b) -> a b"; a=2) == expected
         @test Einops.@einsum(x, "(a b) -> a b"; a=2) == expected
         @test einsum(expected, einops"a b -> a b") == expected
-        @test einsum(x, ((:a, :b),) --> (:a, :b); a=2) == expected
+        @test einsum(x, einops"(a b) -> a b"; a=2) == expected
         @test einsum(x, Einops.ArrowPattern{((:a, :b),), (:a, :b)}(); a=2) == expected
-        @test_throws ArgumentError einsum(expected, ((:a, :b),) --> (:a, :b))
+        @test_throws ArgumentError einsum(expected, einops"(a b) -> a b")
         @test einsum(reshape(x, 2, 3), einops"(a b) (c d) -> a b c d"; a=2, c=3) == reshape(x, 2, 1, 3, 1)
         @test einsum(x, fill(2.0), einops"(a b), -> a b"; a=2) == 2 .* expected
-        # The same left tuple describes two grouped axes or two operands by arity.
-        pattern = ((:i,), (:j,)) --> (:i, :j)
-        @test einsum(expected, pattern) == expected
+        # Two operands are two operands, whatever the number of arrays.
+        pattern = einops"i, j -> i j"
         @test einsum([1.0, 2.0], [3.0, 4.0, 5.0], pattern) == [1.0, 2.0] * [3.0, 4.0, 5.0]'
+        @test_throws "2 operands, but 1 array was given" einsum(expected, pattern)
+        @test einsum(expected, einops"i j -> i j") == expected
+        @test_throws "1 operand, but 2 arrays were given" einsum(x, x, einops"i j -> i j")
         # The single-input contraction fallback must also retain its grouped axis.
         diagonal = collect(1.0:9.0)
         @test only(einsum(diagonal, einops"(i i) ->"; i=3)) == tr(reshape(diagonal, 3, 3))

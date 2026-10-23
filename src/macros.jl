@@ -83,7 +83,8 @@ function try_inline(f, pattern, positional, names, kwentries, has_splat)
     length(positional) == length(vars) || return nothing
 
     L, R = arrow_sides(pattern)
-    has_ellipsis = (..) in flatten(L) || (..) in flatten(R)
+    L isa List && throw_operand_list(L)
+    has_ellipsis = Ellipsis() in flatten(L) || Ellipsis() in flatten(R)
     # A `; kws...` splat hides keys we'd need to resolve a multi-symbol left group's
     # inferred axis; without such a group the splat only supplies values, which stay
     # available through the runtime NamedTuple.

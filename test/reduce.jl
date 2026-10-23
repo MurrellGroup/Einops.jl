@@ -94,49 +94,49 @@ using Test, Statistics
 
     @testset "empty arrays" begin
         x = rand(0, 3, 5)
-        @test reduce(sum, x, (:a, :b, :c) --> (:b, :c)) |> size == (3, 5)
-        @test reduce(sum, x, (:a, :b, :c) --> (:b, :c)) == zeros(3, 5)
+        @test reduce(sum, x, einops"a b c -> b c") |> size == (3, 5)
+        @test reduce(sum, x, einops"a b c -> b c") == zeros(3, 5)
         
         x = rand(2, 0, 5)
-        @test reduce(sum, x, (:a, :b, :c) --> (:a, :c)) |> size == (2, 5)
-        @test reduce(sum, x, (:a, :b, :c) --> (:a, :c)) == zeros(2, 5)
+        @test reduce(sum, x, einops"a b c -> a c") |> size == (2, 5)
+        @test reduce(sum, x, einops"a b c -> a c") == zeros(2, 5)
         
         x = rand(2, 3, 0)
-        @test reduce(sum, x, (:a, :b, :c) --> (:a, :b)) |> size == (2, 3)
-        @test reduce(sum, x, (:a, :b, :c) --> (:a, :b)) == zeros(2, 3)
+        @test reduce(sum, x, einops"a b c -> a b") |> size == (2, 3)
+        @test reduce(sum, x, einops"a b c -> a b") == zeros(2, 3)
         
         # Completely empty array
         x = rand(0, 0, 0)
-        @test reduce(sum, x, (:a, :b, :c) --> (:b,)) |> size == (0,)
+        @test reduce(sum, x, einops"a b c -> b") |> size == (0,)
     end
 
     @testset "single element arrays" begin
         x = rand(1)
-        @test reduce(sum, x, (:a,) --> ()) == fill(x[1])
+        @test reduce(sum, x, einops"a ->") == fill(x[1])
         
         x = rand(1, 1, 1)
-        @test reduce(sum, x, (:a, :b, :c) --> ()) == fill(x[1])
+        @test reduce(sum, x, einops"a b c ->") == fill(x[1])
     end
 
     @testset "all-ones dimensions" begin
         x = rand(1, 1, 1)
-        @test reduce(sum, x, (:a, :b, :c) --> (:a,)) |> size == (1,)
+        @test reduce(sum, x, einops"a b c -> a") |> size == (1,)
     end
 
     @testset "extreme dimension sizes" begin
         # Very small dimensions mixed with regular ones
         x = rand(1, 100, 1, 50, 1)
         # Can't drop dimensions in rearrange - use reduce instead
-        @test reduce(sum, x, (:a, :b, :c, :d, :e) --> (:b, :d)) |> size == (100, 50)
+        @test reduce(sum, x, einops"a b c d e -> b d") |> size == (100, 50)
     end
 
     @testset "no-op allocation optimization" begin
         x = rand(2, 3, 4)
         
-        y = reduce(sum, x, (:a, :b, :c) --> (:a, :b, :c))
+        y = reduce(sum, x, einops"a b c -> a b c")
         @test pointer(x) == pointer(y)
 
-        y = reduce(sum, x, (:a, :b, :c) --> ((:a, :b), :c))
+        y = reduce(sum, x, einops"a b c -> (a b) c")
         @test pointer(x) == pointer(y)
     end
 end
