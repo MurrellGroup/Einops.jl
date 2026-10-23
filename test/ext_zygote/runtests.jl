@@ -71,6 +71,17 @@ using Zygote
         @test gz ≈ (x3 * y3)' * ones(2, 5)
     end
 
+    @testset "reshape with keywords (#51)" begin
+        x = rand(Float32, 6, 4, 3)
+        f(x) = sum(abs2, reshape(x, einops"(a b) c ... -> a b (c ...)"; a=2))
+        @test only(gradient(f, x)) ≈ 2 .* x
+        # the macro's call fallback, which a `; kws...` splat takes
+        g(x) = sum(abs2, @reshape(x, "(a b) c ... -> a b (c ...)"; (; a=2)...))
+        @test only(gradient(g, x)) ≈ 2 .* x
+        h(x) = sum(abs2, reshape(x, einops"a b c -> (a b) c"))
+        @test only(gradient(h, x)) ≈ 2 .* x
+    end
+
     @testset "checked and interpolated lengths" begin
         x = rand(Float32, 6, 4)
         k = 2

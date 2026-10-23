@@ -15,9 +15,11 @@ TupleTools = "9d95972d-f1c8-5527-a6e0-b4b365fa01f6"
 
 [weakdeps]
 Reactant = "3c362404-f566-11ee-1572-e11a4b42c853"
+ZygoteRules = "700de1a5-db45-46bc-99cf-38207098b444"
 
 [extensions]
 ReactantExt = "Reactant"
+ZygoteRulesExt = "ZygoteRules"
 
 [compat]
 ChainRulesCore = "1.7"
@@ -26,4 +28,5 @@ Reactant = "0.2"
 Republic = "2.2"
 Rewrap = "0.1.8"
 TupleTools = "1"
+ZygoteRules = "0.2"
 julia = "1.10"
