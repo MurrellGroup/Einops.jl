@@ -58,6 +58,10 @@ using Test
             @test collect(L) == [(:i, :j), (:j, :k), ()]
             @test map(length, L) === (2, 2, 0)
             @test [op for op in L] == collect(L)
+            # only einsum takes more than one operand
+            @test_throws "lists 2 operands" rearrange(rand(2, 3), einops"i, j -> i j")
+            @test_throws "lists 2 operands" reduce(sum, rand(2, 3), einops"i, j -> i")
+            @test_throws "lists 3 operands" @macroexpand @repeat(x, "i, j, k -> i j k")
             # a list holds at least two sides
             @test_throws "two or more pattern sides" Einops.List{((:a,),)}()
             @test_throws "two or more pattern sides" Einops.List{(:a, :b)}()
