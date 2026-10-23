@@ -144,7 +144,7 @@ const ELLIPSIS_PLACEHOLDER = Symbol("__ellipsis_placeholder__")
 
 # Replace the ellipsis (`..`, possibly nested on the right) with the placeholder.
 replace_ellipsis_placeholder(side) =
-    map(el -> el == (..) ? ELLIPSIS_PLACEHOLDER :
+    map(el -> el == Ellipsis() ? ELLIPSIS_PLACEHOLDER :
               el isa Tuple ? replace_ellipsis_placeholder(el) : el, side)
 
 # `m` is captured once at the top of the body, since `x` is reassigned as the plan runs

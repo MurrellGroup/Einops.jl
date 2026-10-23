@@ -5,9 +5,7 @@
 ```@docs
 Einops.ArrowPattern
 Einops.BoundPattern
--->
 @einops_str
-..
 ```
 
 ## `parse_shape`

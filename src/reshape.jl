@@ -1,7 +1,7 @@
 """
-    reshape(x::AbstractArray, left --> right; context...)
+    reshape(x::AbstractArray, pattern::ArrowPattern; context...)
 
-Reshape `x` according to the pattern `left --> right`.
+Reshape `x` according to `pattern`.
 
 Unlike [`rearrange`](@ref), this does not permute dimensions - symbols must appear
 in the same order on both sides.
@@ -16,7 +16,7 @@ julia> reshape(x, einops"1 (a b) ... -> a (b ...)"; a=2) |> size
 
 julia> x = rand(2, 3, 4);
 
-julia> reshape(x, (:a, :b, :c) --> ((:a, :b), :c)) |> size
+julia> reshape(x, einops"a b c -> (a b) c") |> size
 (6, 4)
 ```
 """

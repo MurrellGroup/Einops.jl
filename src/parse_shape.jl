@@ -1,14 +1,11 @@
 """
     parse_shape(x, pattern)
 
-Capture the shape of an array in a pattern by naming dimensions using `Symbol`s,
-and `-` to ignore dimensions, and `..` to ignore any number of dimensions.
+Capture the shape of an array in a pattern by naming dimensions, with `_` to ignore
+a dimension and `...` to ignore any number of them. Without an ellipsis, a tuple of
+`Symbol`s and `-` works too.
 
-Duplicate symbols are allowed, but they must refer to dimensions of the same size.
-
-!!! note
-    For proper type inference, the pattern needs to be passed as `Val(pattern)`
-    when an ellipsis is present. This is done automatically when using [`@einops_str`](@ref).
+Duplicate names are allowed, but they must refer to dimensions of the same size.
 
 # Examples
 
@@ -22,10 +19,10 @@ NamedTuple()
 julia> parse_shape(rand(2,3,4,5), einops"first second third fourth")
 (first = 2, second = 3, third = 4, fourth = 5)
 
-julia> parse_shape(rand(2,3,4), Val((:a, :b, ..)))
+julia> parse_shape(rand(2,3,4), einops"a b ...")
 (a = 2, b = 3)
 
-julia> parse_shape(rand(2,2,4), Val((:a, :a, :b)))  # duplicate 'a' with same size
+julia> parse_shape(rand(2,2,4), einops"a a b")  # duplicate 'a' with same size
 (a = 2, b = 4)
 ```
 """
@@ -52,14 +49,6 @@ julia> parse_shape(rand(2,2,4), Val((:a, :a, :b)))  # duplicate 'a' with same si
         $(duplicate_checks...)
         NamedTuple{$(Tuple(unique_names))}($(Expr(:tuple, (:(size(x, $i)) for i in unique_inds)...)))
     end
-end
-
-function parse_shape(x, ellipsis_pattern)
-    Base.depwarn("""
-    `parse_shape(x, ellipsis_pattern)` is not type stable, use `parse_shape(x, Val(ellipsis_pattern))`
-    or construct the pattern using `@einops_str` instead.
-    """, :parse_shape)
-    parse_shape(x, Val(ellipsis_pattern))
 end
 
 # output type is statically knowable when pattern doesn't contain ellipses

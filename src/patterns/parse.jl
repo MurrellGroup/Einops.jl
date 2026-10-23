@@ -3,18 +3,16 @@ function parse_pattern(pattern::AbstractString)
     lhs, rhs = strip.(split(pattern, "->"; limit = 2))
     occursin("->", rhs) && throw(ArgumentError("multiple \"->\" in pattern"))
     occursin(",", rhs) && throw(ArgumentError("Commas are only allowed on the input side of a pattern"))
-    return tokenize_side(lhs) --> tokenize_side(rhs)
+    return ArrowPattern{tokenize_operands(lhs), tokenize_side(rhs)}()
 end
 
+# Commas separate the operands of an einsum pattern, each a side of its own, so `"i, -> i"`
+# has two operands, the second an empty side: a 0-dimensional array.
+tokenize_operands(side) = occursin(",", side) ?
+    List{Tuple(tokenize_side(strip(part)) for part in split(side, ","; keepempty=true))}() :
+    tokenize_side(side)
+
 function tokenize_side(side::AbstractString)
-    # Check if there are any commas
-    if occursin(",", side)
-        # Split by comma and process each part separately
-        parts = split(side, ","; keepempty=true)
-        return Tuple(tokenize_side(strip(part)) for part in parts)
-    end
-    
-    # Original tokenization logic for parts without commas
     function parse_token!(buf::IOBuffer, tokens::Vector)
         if position(buf) > 0
             s = String(take!(buf))
@@ -51,7 +49,7 @@ function tokenize_side(side::AbstractString)
             i3 = i2 ≤ lastindex(side) ? nextind(side, i2) : i2
             (i3 ≤ lastindex(side) && side[i2] == '.' && side[i3] == '.') ||
                 throw(ArgumentError("single '.' not allowed in pattern"))
-            push!(tokens, ..)
+            push!(tokens, Ellipsis())
             i = nextind(side, i3)
         else
             write(buf, c)
@@ -64,7 +62,7 @@ function tokenize_side(side::AbstractString)
     return Tuple(tokens)
 end
 
-const SpecialToken = Dict(:* => (*), :_ => (-), :... => (..))
+const SpecialToken = Dict(:* => (*), :_ => (-), :... => Ellipsis())
 get_special_token(symbol) = get(SpecialToken, symbol, symbol)
 
 # Recursively map special tokens inside possibly nested tuples
@@ -75,7 +73,9 @@ map_special_tokens(x::Tuple) = Tuple(map(map_special_tokens, x))
 # Generic patterns (no arrow) should still honor parentheses and commas,
 # producing nested tuples where appropriate. Reuse the side tokenizer and
 # then map special tokens like `_`, `*`, and `...`.
-tokenize_generic(pattern) = Val(map_special_tokens(tokenize_side(pattern)))
+tokenize_generic(pattern) = occursin(",", pattern) ?
+    throw(ArgumentError("Commas separate the operands of an einsum pattern, which has `->`: $pattern")) :
+    Val(map_special_tokens(tokenize_side(pattern)))
 
 # === Interpolation ===
 #
@@ -130,7 +130,8 @@ function parse_interpolated_pattern(parts)
     pattern isa ArrowPattern || throw(ArgumentError("Interpolation is only supported in patterns with `->`"))
     renames = Dict(interpolation_placeholder(k) => name for (k, name) in enumerate(names))
     L, R = pattern
-    return rename_axes(renames, L) --> rename_axes(renames, R), names, exprs
+    return ArrowPattern{rename_axes(renames, L), rename_axes(renames, R)}(), names, exprs
 end
 
 rename_axes(renames, side::Tuple) = map(el -> el isa Tuple ? rename_axes(renames, el) : get(renames, el, el), side)
+rename_axes(renames, L::List) = List{map(op -> rename_axes(renames, op), L)}()

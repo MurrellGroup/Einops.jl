@@ -4,25 +4,25 @@ using Test, Statistics
 @testset "Repeat Operations" begin
     @testset "basic repetitions" begin
         x = rand(2, 3)
-        @test repeat(x, (:a, :b) --> (:a, :b, :r), r=2) == repeat(x, 1, 1, 2)
-        @test repeat(x, (:a, :b) --> (:b, :a, :r), r=2) == repeat(permutedims(x, (2, 1)), 1, 1, 2)
-        @test repeat(x, (:a, :b) --> (:a, :b, 1, :r), r=2) == reshape(repeat(x, 1, 1, 2), 2, 3, 1, 2)
-        @test repeat(x, (:a, :b) --> (:a, (:b, :r)), r=2) == reshape(repeat(x, 1, 1, 2), 2, 6)
-        @test repeat(x, (:a, :b) --> (:a, (:b, :r), 1), r=2) == reshape(repeat(x, 1, 1, 2), 2, 6, 1)
-        @test repeat(x, (:a, :b) --> (:a, :b, 2)) == repeat(x, 1, 1, 2)
+        @test repeat(x, einops"a b -> a b r", r=2) == repeat(x, 1, 1, 2)
+        @test repeat(x, einops"a b -> b a r", r=2) == repeat(permutedims(x, (2, 1)), 1, 1, 2)
+        @test repeat(x, einops"a b -> a b 1 r", r=2) == reshape(repeat(x, 1, 1, 2), 2, 3, 1, 2)
+        @test repeat(x, einops"a b -> a (b r)", r=2) == reshape(repeat(x, 1, 1, 2), 2, 6)
+        @test repeat(x, einops"a b -> a (b r) 1", r=2) == reshape(repeat(x, 1, 1, 2), 2, 6, 1)
+        @test repeat(x, einops"a b -> a b 2") == repeat(x, 1, 1, 2)
     end
 
     @testset "type inference" begin
         x = rand(2, 3)
-        @test (@inferred repeat(x, (:a, :b) --> (:a, :b, 2))) == repeat(x, 1, 1, 2)
+        @test (@inferred repeat(x, einops"a b -> a b 2")) == repeat(x, 1, 1, 2)
     end
 
     @testset "singleton dimensions" begin
         x = rand(2, 1, 3)
-        @test repeat(x, (:a, 1, :b) --> (:a, :b, :r), r=2) == repeat(reshape(x, 2, 3), 1, 1, 2)
-        @test repeat(x, (:a, 1, :b) --> (:a, :b, 1, :r), r=2) == reshape(repeat(reshape(x, 2, 3), 1, 1, 2), 2, 3, 1, 2)
-        @test repeat(x, (:a, 1, :b) --> (:a, (:b, :r)), r=2) == reshape(repeat(reshape(x, 2, 3), 1, 1, 2), 2, 6)
-        @test repeat(x, (:a, 1, :b) --> (:a, (:b, :r), 1), r=2) == reshape(repeat(reshape(x, 2, 3), 1, 1, 2), 2, 6, 1)
+        @test repeat(x, einops"a 1 b -> a b r", r=2) == repeat(reshape(x, 2, 3), 1, 1, 2)
+        @test repeat(x, einops"a 1 b -> a b 1 r", r=2) == reshape(repeat(reshape(x, 2, 3), 1, 1, 2), 2, 3, 1, 2)
+        @test repeat(x, einops"a 1 b -> a (b r)", r=2) == reshape(repeat(reshape(x, 2, 3), 1, 1, 2), 2, 6)
+        @test repeat(x, einops"a 1 b -> a (b r) 1", r=2) == reshape(repeat(reshape(x, 2, 3), 1, 1, 2), 2, 6, 1)
     end
 
     @testset "ellipses support" begin
@@ -34,8 +34,8 @@ using Test, Statistics
 
     @testset "complex decompositions" begin
         x = rand(2, 3, 35)
-        @test repeat(x, (:a, :b, (:c, :c2)) --> (:a, (:b, :c), :c2, :r), c2=7, r=2) == reshape(repeat(reshape(x, 2, 3, 5, 7), 1, 1, 1, 1, 2), 2, 3*5, 7, 2)
-        @test repeat(x, (:a, :b, (:c, :c2)) --> (:r, :c2, :a, (:c, :b)), c2=7, r=2) == reshape(repeat(reshape(permutedims(reshape(x, 2, 3, 5, 7), (4, 1, 3, 2)), 1, 7, 2, 5, 3), 2, 1, 1, 1, 1), 2, 7, 2, 5*3)
+        @test repeat(x, einops"a b (c c2) -> a (b c) c2 r", c2=7, r=2) == reshape(repeat(reshape(x, 2, 3, 5, 7), 1, 1, 1, 1, 2), 2, 3*5, 7, 2)
+        @test repeat(x, einops"a b (c c2) -> r c2 a (c b)", c2=7, r=2) == reshape(repeat(reshape(permutedims(reshape(x, 2, 3, 5, 7), (4, 1, 3, 2)), 1, 7, 2, 5, 3), 2, 1, 1, 1, 1), 2, 7, 2, 5*3)
     end
 
     @testset "Python API reference parity" begin
@@ -66,32 +66,32 @@ using Test, Statistics
     @testset "empty arrays" begin
         # Completely empty array
         x = rand(0, 0, 0)
-        @test repeat(x, (:a, :b, :c) --> (:a, :b, :c, :d), d=4) |> size == (0, 0, 0, 4)
+        @test repeat(x, einops"a b c -> a b c d", d=4) |> size == (0, 0, 0, 4)
     end
 
     @testset "single element arrays" begin
         x = rand(1)
-        @test repeat(x, (:a,) --> (:a, :b), b=3) |> size == (1, 3)
+        @test repeat(x, einops"a -> a b", b=3) |> size == (1, 3)
     end
 
     @testset "all-ones dimensions" begin
         x = rand(1, 1, 1)
-        @test repeat(x, (:a, :b, :c) --> (:a, :b, :c, :d, :e), d=2, e=3) |> size == (1, 1, 1, 2, 3)
+        @test repeat(x, einops"a b c -> a b c d e", d=2, e=3) |> size == (1, 1, 1, 2, 3)
     end
 
     @testset "array types" begin
         # Non-numeric arrays - these should work!
         x = ["a" "b"; "c" "d"]
-        @test repeat(x, (:a, :b) --> (:a, :b, :c), c=2) == cat(x, x, dims=3)
+        @test repeat(x, einops"a b -> a b c", c=2) == cat(x, x, dims=3)
     end
 
     @testset "no-op allocation optimization" begin
         x = rand(2, 3, 4)
 
-        y = repeat(x, (:a, :b, :c) --> (:a, :b, :c, 1))
+        y = repeat(x, einops"a b c -> a b c 1")
         @test pointer(x) == pointer(y)
 
-        y = repeat(x, (:a, :b, :c) --> ((:a, :b), :c, 1))
+        y = repeat(x, einops"a b c -> (a b) c 1")
         @test pointer(x) == pointer(y)
     end
 end
