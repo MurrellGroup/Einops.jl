@@ -6,7 +6,7 @@ import Base: reshape, reduce, repeat
 
 using EllipsisNotation; export ..
 using TupleTools: flatten, insertat
-using ChainRulesCore: @ignore_derivatives
+using ChainRulesCore: @ignore_derivatives, @non_differentiable
 using OMEinsum: OMEinsum
 using Rewrap
 using Rewrap: Permute, Reduce, Repeat
@@ -14,7 +14,7 @@ using Rewrap: Permute, Reduce, Repeat
 include("utils.jl")
 
 include("patterns/patterns.jl")
-@public ArrowPattern
+@public ArrowPattern, BoundPattern
 export -->, @einops_str
 
 include("parse_shape.jl")
@@ -40,6 +40,6 @@ include("pack_unpack.jl")
 export pack, unpack
 
 include("macros.jl")
-@public @rearrange, @reshape, @reduce, @repeat, @einsum
+export @rearrange, @reshape, @reduce, @repeat, @einsum
 
 end

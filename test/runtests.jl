@@ -20,6 +20,7 @@ EINOPS_TEST_REACTANT && Pkg.add("Reactant")
     include("einsum.jl")
     include("pack_unpack.jl")
     include("macros.jl")
+    include("axis_lengths.jl")
     include("builders.jl")
     include("robustness.jl")
 

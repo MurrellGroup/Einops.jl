@@ -71,4 +71,13 @@ using Zygote
         @test gz ≈ (x3 * y3)' * ones(2, 5)
     end
 
+    @testset "checked and interpolated lengths" begin
+        x = rand(Float32, 6, 4)
+        k = 2
+        f(x) = sum(abs2, reduce(sum, x, einops"($k b) c -> b c"))
+        g(x) = sum(abs2, @rearrange(x, "(a b) c -> b c a", a=2))
+        @test only(gradient(f, x)) ≈ only(gradient(x -> sum(abs2, reduce(sum, x, einops"(a b) c -> b c"; a=2)), x))
+        @test only(gradient(g, x)) ≈ 2 .* x
+    end
+
 end

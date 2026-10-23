@@ -76,3 +76,61 @@ map_special_tokens(x::Tuple) = Tuple(map(map_special_tokens, x))
 # producing nested tuples where appropriate. Reuse the side tokenizer and
 # then map special tokens like `_`, `*`, and `...`.
 tokenize_generic(pattern) = Val(map_special_tokens(tokenize_side(pattern)))
+
+# === Interpolation ===
+#
+# `$x` in a pattern is an axis of length `x` and nothing more, as if the value were written
+# there: like an integer other than 1, it can be reduced or created but not carried through,
+# and each occurrence is an axis of its own. The value stays out of the pattern's type: the
+# axis gets a hidden name, and the value goes along as that name's length, the way a keyword
+# would.
+
+# A raw string's literal parts and the expressions it interpolates with `$`, the way Julia's
+# parser splits a string literal in code (which hands the macros the same parts).
+function interpolation_parts(str::AbstractString)
+    parts = Any[]
+    buf = IOBuffer()
+    i = firstindex(str)
+    while i <= lastindex(str)
+        if str[i] == '$'
+            j = nextind(str, i)
+            j <= lastindex(str) && !isspace(str[j]) ||
+                throw(ArgumentError("`\$` in a pattern must be followed by a name or a parenthesized expression: $str"))
+            push!(parts, String(take!(buf)))
+            ex, i = Meta.parseatom(str, j)
+            push!(parts, ex)
+        else
+            write(buf, str[i])
+            i = nextind(str, i)
+        end
+    end
+    push!(parts, String(take!(buf)))
+    return parts
+end
+
+interpolation_placeholder(k) = Symbol("__interp_", k, "__")
+
+# The hidden name keeps the source, `$x`, for messages, and a count that makes it unique.
+interpolated_name(ex, k) = Symbol("__\$", ex isa Symbol ? ex : "($ex)", "#", k)
+is_interpolated(name::Symbol) = startswith(String(name), "__\$")
+interpolated_source(name::Symbol) = (s = String(name); s[3:prevind(s, findlast('#', s))])
+
+# Returns the pattern, and the name and expression of each interpolation.
+function parse_interpolated_pattern(parts)
+    names, exprs = Symbol[], Any[]
+    str = sprint() do io
+        for part in parts
+            part isa AbstractString && (print(io, part); continue)
+            push!(exprs, part)
+            push!(names, interpolated_name(part, length(exprs)))
+            print(io, ' ', interpolation_placeholder(length(exprs)), ' ')
+        end
+    end
+    pattern = parse_pattern(str)
+    pattern isa ArrowPattern || throw(ArgumentError("Interpolation is only supported in patterns with `->`"))
+    renames = Dict(interpolation_placeholder(k) => name for (k, name) in enumerate(names))
+    L, R = pattern
+    return rename_axes(renames, L) --> rename_axes(renames, R), names, exprs
+end
+
+rename_axes(renames, side::Tuple) = map(el -> el isa Tuple ? rename_axes(renames, el) : get(renames, el, el), side)

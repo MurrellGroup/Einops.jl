@@ -57,8 +57,12 @@ end
 repeat(x::AbstractArray, pattern::ArrowPattern; context...) =
     invoke(repeat, Tuple{Any,ArrowPattern}, x, pattern; context...)
 
+repeat(x, p::BoundPattern; context...) = repeat(x, p.pattern; p.lengths..., context...)
+repeat(x::AbstractArray, p::BoundPattern; context...) = repeat(x, p.pattern; p.lengths..., context...)
+
 # See `rearrange_body` for the shared conventions.
 function repeat_body(N, left, right, context_names)
+    reject_anonymous_axes(left)
     right, extra_context = remove_anonymous_dims(right)
     left_names, right_names = extract(Symbol, left), extract(Symbol, right)
     repeat_names = setdiff(right_names, left_names)
@@ -71,6 +75,7 @@ function repeat_body(N, left, right, context_names)
     shape_out = get_shape_out(right)
     body = Expr(:block)
     isempty(extra_context) || push!(body.args, :(context = merge(context, $extra_context)))
+    append!(body.args, axis_length_checks(left, context_names))
     isnothing(shape_in) || push!(body.args, :(x = _reshape(x, $shape_in)))
     permutation === ntuple(identity, length(permutation)) || push!(body.args, :(x = $(Rewrap.Permute(permutation))(x)))
     if !all(==(1), repeat_dims)
@@ -85,6 +90,7 @@ end
 # Ellipsis variant; see `rearrange_body_ellipsis`. Ellipsis dims are kept (never
 # repeated), so their `Repeat` factor slot expands to a run of 1's.
 function repeat_body_ellipsis(L, R, context_names)
+    reject_anonymous_axes(L)
     left = replace_ellipsis_placeholder(L)
     right = replace_ellipsis_placeholder(R)
     m = ELLIPSIS_M
@@ -103,7 +109,8 @@ function repeat_body_ellipsis(L, R, context_names)
     pli_norepeat = findfirst(==(ELLIPSIS_PLACEHOLDER), right_names_no_repeat)
     pli_right = findfirst(==(ELLIPSIS_PLACEHOLDER), right_names)
 
-    isnothing(shape_in) || expand_keep!(shape_in, findfirst(==(ELLIPSIS_PLACEHOLDER), left), m)
+    pli_entry = findfirst(==(ELLIPSIS_PLACEHOLDER), left)
+    isnothing(shape_in) || expand_keep!(shape_in, pli_entry, m)
     perm = permutation === ntuple(identity, length(permutation)) ? nothing : permute_run_expr(permutation, pli_left)
     do_repeat = !all(==(1), repeat_dims)
     pre_repeat = repeat_tuple = nothing
@@ -117,6 +124,7 @@ function repeat_body_ellipsis(L, R, context_names)
 
     body = Expr(:block, ellipsis_m_binding(L))
     isempty(extra_context) || push!(body.args, :(context = merge(context, $extra_context)))
+    append!(body.args, axis_length_checks(left, context_names; axis=ellipsis_axis(pli_entry)))
     isnothing(shape_in) || push!(body.args, :(x = _reshape(x, $shape_in)))
     isnothing(perm) || push!(body.args, :(x = $perm))
     if do_repeat

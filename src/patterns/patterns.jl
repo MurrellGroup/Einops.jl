@@ -70,6 +70,12 @@ Einops.ArrowPattern{(:a,), (1, :a)}
 julia> (:a, ..) --> :a # exported ellipsis notation
 (:a, EllipsisNotation.Ellipsis()) --> (:a,)
 ```
+
+!!! note
+    A pattern lives in its type, integers included, so an integer computed at run time
+    gives a pattern whose type is only known at run time. Name the axis and pass its
+    length as a keyword, or interpolate it into a string pattern (see [`@einops_str`](@ref)),
+    which keeps the value out of the type.
 """
 function --> end
 
@@ -83,9 +89,19 @@ include("ellipses.jl")
 include("parse.jl")
 
 """
-    @einops_str -> Union{ArrowPattern,Tuple}
+    @einops_str -> Union{ArrowPattern,BoundPattern,Val}
 
 For parity with Python implementation.
+
+In a pattern, `1` is an axis of length one, and inside parentheses it adds nothing:
+`(1 b)` is `(b)`. Any other integer is an axis given only by its length, which can be
+reduced (on the left of [`reduce`](@ref)) or created (on the right of [`repeat`](@ref)).
+Integers and names given a length by a keyword have that length checked against the input.
+
+`\$x` interpolates an axis of length `x`, as if the value were written there: it too can
+only be reduced or created, and each occurrence is an axis of its own. The value is not
+part of the pattern's type, so it may be computed at run time without making the pattern's
+type unknown; the pattern then carries it along as a [`BoundPattern`](@ref).
 
 # Examples
 
@@ -104,8 +120,45 @@ Val{(:a, :b, -, :d)}()
 
 julia> einops"i j * k" # for pack/unpack
 Val{(:i, :j, *, :k)}()
+
+julia> k = 2;
+
+julia> reduce(sum, rand(4, 6), einops"(h \$k) (w \$k) -> h w") |> size
+(2, 3)
 ```
 """
 macro einops_str(pattern)
-    return parse_pattern(pattern)
+    occursin('$', pattern) || return parse_pattern(pattern)
+    pattern, names, exprs = parse_interpolated_pattern(interpolation_parts(pattern))
+    return :(BoundPattern($pattern, NamedTuple{$(Tuple(names))}(($(map(esc, exprs)...),))))
 end
+
+"""
+    BoundPattern
+
+An [`ArrowPattern`](@ref) together with the lengths of some of its axes, which
+[`@einops_str`](@ref) makes when values are interpolated into a pattern with `\$`.
+The ops pass the lengths on as keywords, so the values stay out of the type.
+
+# Examples
+
+```jldoctest
+julia> n = 3;
+
+julia> einops"(\$n b) -> b"
+((3, :b),) --> (:b,)
+```
+"""
+struct BoundPattern{P<:ArrowPattern,C<:NamedTuple}
+    pattern::P
+    lengths::C
+end
+
+# Shown with the values where they were interpolated, which is what the pattern means.
+function Base.show(io::IO, p::BoundPattern)
+    L, R = p.pattern
+    substitute(side) = map(el -> el isa Tuple ? substitute(el) : el isa Symbol ? get(p.lengths, el, el) : el, side)
+    print(io, substitute(L), " --> ", substitute(R))
+end
+
+Base.broadcastable(p::BoundPattern) = Ref(p)

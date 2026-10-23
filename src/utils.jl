@@ -13,25 +13,91 @@ function get_shape_in(N, left, context_names; allow_repeats=false)
     left isa Tuple{Vararg{Symbol}} && return nothing
     new_shape = :()
     ops = new_shape.args
-    for (i, input_dim) in enumerate(left)
-        if input_dim isa Int
-            input_dim == 1 || throw(ArgumentError("Singleton dimension size is not 1: $input_dim"))
+    for input_dim in left
+        input_dim isa Symbol && (push!(ops, :($Keep())); continue)
+        names = axis_names(input_dim)
+        if isempty(names)
             push!(ops, :($Squeeze()))
-        elseif input_dim isa Symbol
+        elseif length(names) == 1
             push!(ops, :($Keep()))
-        elseif input_dim isa Tuple{Symbol}
-            push!(ops, :($Keep()))
-        elseif input_dim isa Tuple{Vararg{Symbol}}
-            known_size = filter(in(context_names), input_dim)
-            length(input_dim) - length(known_size) <= 1 || throw(ArgumentError("Unknown dimension sizes: $(filter(∉(context_names), input_dim))"))
-            sizes_tuple = Expr(:tuple, (name in known_size ? :(getfield(context, $(QuoteNode(name)))) : :(:) for name in input_dim)...)
-            push!(ops, :($Split(1, $sizes_tuple)))
         else
-            throw(ArgumentError("Invalid input dimension: $input_dim"))
+            known_size = filter(in(context_names), names)
+            length(names) - length(known_size) <= 1 || throw(ArgumentError("Unknown dimension sizes: $(filter(∉(context_names), names))"))
+            sizes_tuple = Expr(:tuple, (name in known_size ? :(getfield(context, $(QuoteNode(name)))) : :(:) for name in names)...)
+            push!(ops, :($Split(1, $sizes_tuple)))
         end
     end
     return new_shape
 end
+
+# The names an axis of the pattern splits into or merges from. A `1` is a unit, of length
+# one, so it adds no name: `(1 b)` is `(b)`, and `1`, `(1)` and `()` each have none.
+function axis_names(dim)
+    dim isa Symbol && return (dim,)
+    dim == 1 && return ()
+    dim isa Integer && throw_anonymous_axis("Integer $dim")
+    dim isa Tuple || throw(ArgumentError("Invalid dimension in pattern: $dim"))
+    for el in dim
+        el isa Symbol || el == 1 || (el isa Integer ? throw_anonymous_axis("Integer $el") : throw(ArgumentError("Invalid dimension in pattern: $dim")))
+    end
+    return filter(el -> el isa Symbol, dim)
+end
+
+throw_anonymous_axis(what) = throw(ArgumentError(
+    "$what in pattern: an axis given only by its length can be reduced (left side of `reduce`) " *
+    "or created (right side of `repeat`), but not carried through. Name it, and pass its length as a keyword."))
+
+# An axis given only by its length, an integer other than 1 or an interpolated `$x`, on a
+# side where it would have to be carried through rather than reduced or created.
+function reject_anonymous_axes(side)
+    for dim in side
+        if dim isa Tuple
+            reject_anonymous_axes(dim)
+        elseif dim isa Integer && dim != 1
+            throw_anonymous_axis("Integer $dim")
+        elseif dim isa Symbol && is_interpolated(dim)
+            throw_anonymous_axis("`$(interpolated_source(dim))`")
+        end
+    end
+end
+
+# Each input axis whose length the pattern pins down is checked before anything reshapes it,
+# so a wrong length is reported against the pattern instead of surfacing from a reshape, or
+# not at all. A unit, an integer or a name with a known length fixes the whole axis; in a
+# group with one name left to infer, the known part must divide it. `axis(i)` maps the
+# position of a left entry to the input axis it covers.
+function axis_length_checks(left, known; axis=identity)
+    checks = Expr[]
+    for (i, dim) in enumerate(left)
+        names = axis_names(dim)
+        given = filter(in(known), names)
+        whole = length(given) == length(names)
+        whole || !isempty(given) || continue
+        lengths = [:(getfield(context, $(QuoteNode(name)))) for name in given]
+        n = isempty(lengths) ? 1 : length(lengths) == 1 ? only(lengths) : Expr(:call, :*, lengths...)
+        shown = Tuple(unique(filter(!is_hidden_name, given)))
+        shown_lengths = Expr(:tuple, (:(getfield(context, $(QuoteNode(name)))) for name in shown)...)
+        ax = axis(i)
+        push!(checks, :(check_axis_length(size(x, $ax), $n, $ax, $whole, NamedTuple{$shown}($shown_lengths))))
+    end
+    return checks
+end
+
+# Names Einops makes up for itself (an integer's axis, an ellipsis' axes) stay out of messages.
+is_hidden_name(name::Symbol) = startswith(String(name), "__")
+
+@inline function check_axis_length(len, n, i, whole, given)
+    (whole ? len == n : n != 0 && rem(len, n) == 0) || throw_axis_length(len, n, i, whole, given)
+    return nothing
+end
+
+@noinline function throw_axis_length(len, n, i, whole, given)
+    expected = whole ? string(n) : "a multiple of $n"
+    names = isempty(given) ? "" : string(" (", join(("$k = $v" for (k, v) in pairs(given)), ", "), ")")
+    throw(DimensionMismatch("Input axis $i has length $len, but the pattern expects $expected$names"))
+end
+
+@non_differentiable check_axis_length(::Any...)
 
 get_mapping(left, right) = Tuple(findfirst.(isequal.(right), (left,)))
 
@@ -45,18 +111,12 @@ function get_shape_out(right)
     right isa Tuple{Vararg{Symbol}} && return nothing
     new_shape = :()
     sizes = new_shape.args
-    i = 1
     for dim in right
-        if dim isa Int
-            dim == 1 || throw(ArgumentError("Singleton dimension size is not 1: $dim"))
-            push!(sizes, :($Unsqueeze()))
-        elseif dim isa Symbol
+        if dim isa Symbol
             push!(sizes, :($Keep()))
-            i += 1
-        elseif dim isa Tuple{Vararg{Symbol}}
-            N = length(dim)
-            push!(sizes, :($Merge($N)))
-            i += N
+        else
+            names = axis_names(dim)
+            push!(sizes, isempty(names) ? :($Unsqueeze()) : :($Merge($(length(names)))))
         end
     end
     return new_shape
@@ -92,6 +152,9 @@ replace_ellipsis_placeholder(side) =
 const ELLIPSIS_M = Symbol("__ellipsis_m__")
 ellipsis_m_binding(L) = :($ELLIPSIS_M = ndims(x) - $(length(L) - 1))
 
+# The input axis a left entry covers, when the placeholder at `pli` stands for `m` axes.
+ellipsis_axis(pli) = i -> i < pli ? i : :($(i - 1) + $ELLIPSIS_M)
+
 keep_run(m) = Expr(:call, Keep, m)                        # Keep(m)
 merge_span(k, m) = Expr(:call, Merge, :($(k - 1) + $m))   # Merge((k-1) + m)
 
@@ -120,7 +183,7 @@ function expand_shape_out!(shape_out::Expr, right, m)
         shape_out.args[oidx] = keep_run(m)
     else
         gidx = findfirst(t -> t isa Tuple && ELLIPSIS_PLACEHOLDER in t, right)
-        shape_out.args[gidx] = merge_span(length(right[gidx]), m)
+        shape_out.args[gidx] = merge_span(length(axis_names(right[gidx])), m)
     end
     return shape_out
 end

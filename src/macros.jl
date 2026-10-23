@@ -29,9 +29,18 @@ function einops_macro_call(f::Symbol, args)
             end
         elseif Meta.isexpr(a, :(=))
             _collect_kw!(a, names, kwentries)
-        elseif a isa AbstractString
+        elseif a isa AbstractString || Meta.isexpr(a, :string)
             pattern_index == 0 || throw(ArgumentError("@$f expects a single string pattern argument"))
-            pattern = parse_pattern(a)
+            if a isa AbstractString
+                pattern = parse_pattern(a)
+            else
+                # `$x` is a hidden axis of length `x`, its value passed on as a keyword
+                f === :einsum && throw_interpolated_einsum()
+                pattern, interpolated, exprs = parse_interpolated_pattern(a.args)
+                for (name, ex) in zip(interpolated, exprs)
+                    push!(names, name); push!(kwentries, Expr(:kw, name, esc(ex)))
+                end
+            end
             pattern_index = length(positional) + 1
         else
             push!(positional, a)
@@ -115,8 +124,6 @@ can be sized at macro-expansion time, otherwise it falls back to a `rearrange` c
 # Examples
 
 ```jldoctest
-julia> using Einops: @rearrange
-
 julia> x = rand(2, 3, 5);
 
 julia> @rearrange(x, "a b c -> c b a") == rearrange(x, einops"a b c -> c b a")
@@ -136,8 +143,6 @@ instead of `einops"..."`. See [`@rearrange`](@ref) for inlining behaviour.
 # Examples
 
 ```jldoctest
-julia> using Einops: @reshape
-
 julia> x = rand(2, 3);
 
 julia> @reshape(x, "a b -> (a b)") == reshape(x, einops"a b -> (a b)")
@@ -154,15 +159,21 @@ end
 Shorthand for [`reduce`](@ref) that takes the pattern as a string literal
 instead of `einops"..."`. See [`@rearrange`](@ref) for inlining behaviour.
 
+A value interpolated with `\$` is an axis of that length, as in [`@einops_str`](@ref),
+and the macro passes it on as a keyword.
+
 # Examples
 
 ```jldoctest
-julia> using Einops: @reduce
-
 julia> x = rand(2, 3);
 
 julia> @reduce(sum, x, "a b -> a") == reduce(sum, x, einops"a b -> a")
 true
+
+julia> k = 2;
+
+julia> @reduce(sum, rand(4, 6), "(h \$k) (w \$k) -> h w") |> size
+(2, 3)
 ```
 """
 macro reduce(args...)
@@ -175,15 +186,21 @@ end
 Shorthand for [`repeat`](@ref) that takes the pattern as a string literal
 instead of `einops"..."`. See [`@rearrange`](@ref) for inlining behaviour.
 
+A value interpolated with `\$` is an axis of that length, as in [`@einops_str`](@ref),
+and the macro passes it on as a keyword.
+
 # Examples
 
 ```jldoctest
-julia> using Einops: @repeat
-
 julia> x = rand(2, 3);
 
 julia> @repeat(x, "a b -> a b c", c=4) == repeat(x, einops"a b -> a b c", c=4)
 true
+
+julia> k = 2;
+
+julia> @repeat(x, "a b -> (\$k a) (\$k b)") |> size
+(4, 6)
 ```
 """
 macro repeat(args...)
@@ -200,8 +217,6 @@ stable and routes through OMEinsum rather than a reshape/permute plan).
 # Examples
 
 ```jldoctest
-julia> using Einops: @einsum
-
 julia> x, y = rand(2, 3), rand(3, 4);
 
 julia> @einsum(x, y, "i j, j k -> i k") == einsum(x, y, einops"i j, j k -> i k")
