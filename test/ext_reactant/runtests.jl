@@ -116,4 +116,16 @@ Reactant.set_default_backend("cpu")
         scaled_split(x, s) = Einops.@einsum(x, s, "(a b), -> a b"; a=2)
         @test Array(@jit scaled_split(Reactant.to_rarray(v), Reactant.to_rarray(fill(2f0)))) ≈ 2 .* reshape(v, 2, 3)
     end
+
+    @testset "checked and interpolated lengths" begin
+        x = rand(Float32, 6, 4)
+        X = Reactant.to_rarray(x)
+        k = 2
+        interp(x) = Einops.@reduce(sum, x, "($k b) c -> b c")
+        @test Array(@jit interp(X)) ≈ reduce(sum, x, einops"(a b) c -> b c"; a=2)
+        bound(x) = rearrange(x, einops"($k b) c -> b c $k")
+        @test Array(@jit bound(X)) ≈ rearrange(x, einops"(a b) c -> b c a"; a=2)
+        wrong(x) = Einops.@reduce(sum, x, "4 c -> c")
+        @test_throws DimensionMismatch @jit wrong(X)
+    end
 end

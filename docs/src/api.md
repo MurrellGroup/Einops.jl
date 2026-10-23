@@ -4,6 +4,7 @@
 
 ```@docs
 Einops.ArrowPattern
+Einops.BoundPattern
 -->
 @einops_str
 ..

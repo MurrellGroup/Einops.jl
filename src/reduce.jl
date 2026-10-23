@@ -46,6 +46,8 @@ true
     end
 end
 
+reduce(f::Function, x, p::BoundPattern; context...) = reduce(f, x, p.pattern; p.lengths..., context...)
+
 # See `rearrange_body` for the shared conventions; also operates on `f`.
 function reduce_body(N, left, right, context_names)
     left, extra_context = remove_anonymous_dims(left)

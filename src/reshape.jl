@@ -29,6 +29,8 @@ julia> reshape(x, (:a, :b, :c) --> ((:a, :b), :c)) |> size
     end
 end
 
+Base.reshape(x, p::BoundPattern; context...) = reshape(x, p.pattern; p.lengths..., context...)
+
 # See `rearrange_body` for the shared conventions.
 function reshape_body(N, left, right, context_names)
     left_symbols = extract(Symbol, left)

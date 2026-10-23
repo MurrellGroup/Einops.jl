@@ -14,7 +14,7 @@ using Rewrap: Permute, Reduce, Repeat
 include("utils.jl")
 
 include("patterns/patterns.jl")
-@public ArrowPattern
+@public ArrowPattern, BoundPattern
 export -->, @einops_str
 
 include("parse_shape.jl")

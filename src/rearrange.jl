@@ -36,6 +36,8 @@ true
     end
 end
 
+rearrange(x, p::BoundPattern; context...) = rearrange(x, p.pattern; p.lengths..., context...)
+
 # `rearrange`'s plan, factored out so `@rearrange` can splice it inline. `left`/`right`
 # are ellipsis-resolved for `N`; the block operates on `x`/`context` and returns `x`.
 function rearrange_body(N, left, right, context_names)

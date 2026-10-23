@@ -57,6 +57,9 @@ end
 repeat(x::AbstractArray, pattern::ArrowPattern; context...) =
     invoke(repeat, Tuple{Any,ArrowPattern}, x, pattern; context...)
 
+repeat(x, p::BoundPattern; context...) = repeat(x, p.pattern; p.lengths..., context...)
+repeat(x::AbstractArray, p::BoundPattern; context...) = repeat(x, p.pattern; p.lengths..., context...)
+
 # See `rearrange_body` for the shared conventions.
 function repeat_body(N, left, right, context_names)
     right, extra_context = remove_anonymous_dims(right)

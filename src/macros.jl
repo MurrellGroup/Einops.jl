@@ -29,9 +29,17 @@ function einops_macro_call(f::Symbol, args)
             end
         elseif Meta.isexpr(a, :(=))
             _collect_kw!(a, names, kwentries)
-        elseif a isa AbstractString
+        elseif a isa AbstractString || Meta.isexpr(a, :string)
             pattern_index == 0 || throw(ArgumentError("@$f expects a single string pattern argument"))
-            pattern = parse_pattern(a)
+            if a isa AbstractString
+                pattern = parse_pattern(a)
+            else
+                # `$x` names an axis after `x` and passes its value as that name's length
+                pattern, interpolated, exprs = parse_interpolated_pattern(a.args)
+                for (name, ex) in zip(interpolated, exprs)
+                    push!(names, name); push!(kwentries, Expr(:kw, name, esc(ex)))
+                end
+            end
             pattern_index = length(positional) + 1
         else
             push!(positional, a)
@@ -112,6 +120,9 @@ instead of `einops"..."`. The reshape/permute plan is inlined at the call site
 (no `@generated` function, no `Base.Pairs` keyword object) whenever the pattern
 can be sized at macro-expansion time, otherwise it falls back to a `rearrange` call.
 
+A value interpolated with `\$` is an axis of that length, named after the expression,
+as in [`@einops_str`](@ref); the macro passes it on as a keyword.
+
 # Examples
 
 ```jldoctest
@@ -121,6 +132,11 @@ julia> x = rand(2, 3, 5);
 
 julia> @rearrange(x, "a b c -> c b a") == rearrange(x, einops"a b c -> c b a")
 true
+
+julia> h = 2;
+
+julia> @rearrange(rand(6, 5), "(\$h d) n -> d n \$h") |> size
+(3, 5, 2)
 ```
 """
 macro rearrange(args...)

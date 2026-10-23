@@ -31,6 +31,8 @@ function _einsum(pattern::ArrowPattern, arrays::Vararg{AbstractArray}; optimizer
     return _contract_einsum(pattern, arrays...; optimizer, context...)
 end
 
+_einsum(p::BoundPattern, arrays::Vararg{AbstractArray}; context...) = _einsum(p.pattern, arrays...; p.lengths..., context...)
+
 function _contract_einsum(
     ::ArrowPattern{L,R}, arrays::Vararg{AbstractArray};
     optimizer::Union{Nothing,OMEinsum.CodeOptimizer} = nothing,
@@ -82,9 +84,9 @@ julia> einsum(x, y, ((:i, :j), (:j, :k)) --> (:i, :k)) == x * y
 true
 ```
 """
-function einsum(args::Vararg{Union{AbstractArray,ArrowPattern}}; kws...)
+function einsum(args::Vararg{Union{AbstractArray,ArrowPattern,BoundPattern}}; kws...)
     arrays::Tuple{Vararg{AbstractArray}} = Base.front(args)
-    pattern = last(args)::ArrowPattern
+    pattern = last(args)::Union{ArrowPattern,BoundPattern}
     return _einsum(pattern, arrays...; kws...)
 end
 
