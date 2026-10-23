@@ -126,8 +126,6 @@ as in [`@einops_str`](@ref); the macro passes it on as a keyword.
 # Examples
 
 ```jldoctest
-julia> using Einops: @rearrange
-
 julia> x = rand(2, 3, 5);
 
 julia> @rearrange(x, "a b c -> c b a") == rearrange(x, einops"a b c -> c b a")
@@ -152,8 +150,6 @@ instead of `einops"..."`. See [`@rearrange`](@ref) for inlining behaviour.
 # Examples
 
 ```jldoctest
-julia> using Einops: @reshape
-
 julia> x = rand(2, 3);
 
 julia> @reshape(x, "a b -> (a b)") == reshape(x, einops"a b -> (a b)")
@@ -173,8 +169,6 @@ instead of `einops"..."`. See [`@rearrange`](@ref) for inlining behaviour.
 # Examples
 
 ```jldoctest
-julia> using Einops: @reduce
-
 julia> x = rand(2, 3);
 
 julia> @reduce(sum, x, "a b -> a") == reduce(sum, x, einops"a b -> a")
@@ -194,8 +188,6 @@ instead of `einops"..."`. See [`@rearrange`](@ref) for inlining behaviour.
 # Examples
 
 ```jldoctest
-julia> using Einops: @repeat
-
 julia> x = rand(2, 3);
 
 julia> @repeat(x, "a b -> a b c", c=4) == repeat(x, einops"a b -> a b c", c=4)
@@ -216,8 +208,6 @@ stable and routes through OMEinsum rather than a reshape/permute plan).
 # Examples
 
 ```jldoctest
-julia> using Einops: @einsum
-
 julia> x, y = rand(2, 3), rand(3, 4);
 
 julia> @einsum(x, y, "i j, j k -> i k") == einsum(x, y, einops"i j, j k -> i k")

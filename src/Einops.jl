@@ -40,6 +40,6 @@ include("pack_unpack.jl")
 export pack, unpack
 
 include("macros.jl")
-@public @rearrange, @reshape, @reduce, @repeat, @einsum
+export @rearrange, @reshape, @reduce, @repeat, @einsum
 
 end

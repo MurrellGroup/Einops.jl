@@ -1,6 +1,6 @@
 name = "Einops"
 uuid = "e3ce28c8-8bfb-4704-8add-e3e7f14b55c9"
-version = "0.2.3"
+version = "0.3.0"
 authors = ["Anton Oresten <antonoresten@gmail.com>"]
 
 [workspace]
@@ -28,4 +28,4 @@ Reactant = "0.2"
 Republic = "2.2"
 Rewrap = "0.1.8"
 TupleTools = "1"
-julia = "1.9"
+julia = "1.10"

@@ -19,36 +19,36 @@ parse_shape
 ## `rearrange`
 
 ```@docs
+@rearrange
 rearrange
-Einops.@rearrange
 ```
 
 ## `reshape`
 
 ```@docs
+@reshape
 reshape
-Einops.@reshape
 ```
 
 ## `reduce`
 
 ```@docs
+@reduce
 reduce
-Einops.@reduce
 ```
 
 ## `repeat`
 
 ```@docs
+@repeat
 repeat
-Einops.@repeat
 ```
 
 ## `einsum`
 
 ```@docs
+@einsum
 einsum
-Einops.@einsum
 Einops.contract
 ```
 
