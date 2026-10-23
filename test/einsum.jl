@@ -102,6 +102,16 @@ end
         @test einsum(Tagged(x), Tagged(m), Tagged(y), einops"i j, j j, j k -> i k").a ≈ x * Diagonal(m) * y
     end
 
+    @testset "sliced contraction orders" begin
+        # OMEinsum 0.9 slices only when `optimize_code` is given a slicer, which `einsum`
+        # never passes, so the trees are built here.
+        OME = Einops.OMEinsum
+        code = OME.StaticEinCode{Symbol,((:i, :j), (:j, :k), (:k, :l)),(:i, :l)}()
+        tree = OME.optimize_code(code, Dict(:i => 2, :j => 3, :k => 4, :l => 5), OME.GreedyMethod())
+        @test Einops.contraction_order(OME.SlicedEinsum(Symbol[], tree)) == Einops.contraction_order(tree)
+        @test_throws "sliced contraction order is not supported" Einops.contraction_order(OME.SlicedEinsum([:k], tree))
+    end
+
     @testset "single operand reduces without OMEinsum" begin
         x = rand(3, 4, 5)
         @test einsum(x, einops"i j k -> k i") == reduce(sum, x, einops"i j k -> k i")
