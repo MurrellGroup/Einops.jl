@@ -31,12 +31,17 @@ end
 
 Base.reshape(x, p::BoundPattern; context...) = reshape(x, p.pattern; p.lengths..., context...)
 
+function throw_reordered(left, right)
+    check_one_sided(extract(Symbol, left), extract(Symbol, right))
+    throw(ArgumentError("`reshape` can't reorder names, as `$(spell(left)) -> $(spell(right))` does; use `rearrange`"))
+end
+
 # See `rearrange_body` for the shared conventions.
 function reshape_body(N, left, right, context_names)
     reject_anonymous_axes(left); reject_anonymous_axes(right)
     left_symbols = extract(Symbol, left)
     right_symbols = extract(Symbol, right)
-    left_symbols == right_symbols || throw(ArgumentError("reshape requires symbols in same order on both sides. Got $left_symbols vs $right_symbols. Use rearrange for permutations."))
+    left_symbols == right_symbols || throw_reordered(left, right)
     shape_in = get_shape_in(N, left, context_names)
     shape_out = get_shape_out(right)
     body = Expr(:block, axis_length_checks(left, context_names)...)
@@ -54,7 +59,7 @@ function reshape_body_ellipsis(L, R, context_names)
     m = ELLIPSIS_M
     left_symbols = extract(Symbol, left)
     right_symbols = extract(Symbol, right)
-    left_symbols == right_symbols || throw(ArgumentError("reshape requires symbols in same order on both sides. Got $left_symbols vs $right_symbols. Use rearrange for permutations."))
+    left_symbols == right_symbols || throw_reordered(left, right)
     shape_in = get_shape_in(length(left), left, context_names)
     shape_out = get_shape_out(right)
     pli_entry = findfirst(==(ELLIPSIS_PLACEHOLDER), left)

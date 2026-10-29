@@ -118,9 +118,9 @@ using Test
         end
 
         @testset "parsing errors" begin
-            @test_throws "'.'" Einops.parse_pattern("-> .")
-            @test_throws "'('" Einops.parse_pattern("-> (")
-            @test_throws "')'" Einops.parse_pattern("-> )")
+            @test_throws "`.`" Einops.parse_pattern("-> .")
+            @test_throws "`(`" Einops.parse_pattern("-> (")
+            @test_throws "`)`" Einops.parse_pattern("-> )")
         end
 
         @testset "unicode patterns" begin

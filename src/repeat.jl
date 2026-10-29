@@ -60,12 +60,22 @@ repeat(x::AbstractArray, pattern::ArrowPattern; context...) =
 repeat(x, p::BoundPattern; context...) = repeat(x, p.pattern; p.lengths..., context...)
 repeat(x::AbstractArray, p::BoundPattern; context...) = repeat(x, p.pattern; p.lengths..., context...)
 
+# Each axis `repeat` creates needs its length.
+function check_lengths_given(new_names, known)
+    missing = filter(∉(known), new_names)
+    isempty(missing) || throw(ArgumentError(length(missing) == 1 ?
+        "`repeat` needs the length of new axis $(quoted(missing)); pass it as a keyword" :
+        "`repeat` needs the lengths of new axes $(quoted(missing)); pass them as keywords"))
+    return nothing
+end
+
 # See `rearrange_body` for the shared conventions.
 function repeat_body(N, left, right, context_names)
     reject_anonymous_axes(left)
     right, extra_context = remove_anonymous_dims(right)
     left_names, right_names = extract(Symbol, left), extract(Symbol, right)
     repeat_names = setdiff(right_names, left_names)
+    check_lengths_given(repeat_names, (context_names..., keys(extra_context)...))
     right_names_no_repeat = setdiff(right_names, repeat_names)
     shape_in = get_shape_in(N, left, context_names)
     permutation = get_permutation(left_names, right_names_no_repeat)
@@ -97,6 +107,7 @@ function repeat_body_ellipsis(L, R, context_names)
     right, extra_context = remove_anonymous_dims(right)
     left_names, right_names = extract(Symbol, left), extract(Symbol, right)
     repeat_names = setdiff(right_names, left_names)
+    check_lengths_given(repeat_names, (context_names..., keys(extra_context)...))
     right_names_no_repeat = setdiff(right_names, repeat_names)
     shape_in = get_shape_in(length(left), left, context_names)
     permutation = get_permutation(left_names, right_names_no_repeat)

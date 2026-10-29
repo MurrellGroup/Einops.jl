@@ -20,7 +20,7 @@ sumout(x::TracedRArray{T}, dims) where {T} =
 
 function pairwise(ix::Tuple, iy::Tuple, iout::Tuple)
     for labels in (ix, iy)
-        allunique(labels) || throw(ArgumentError("Repeated label within one operand is not supported by this backend: $labels"))
+        allunique(labels) || Einops.throw_repeated(labels, "in one operand, which Reactant's `einsum` doesn't support")
     end
     allunique(iout) || throw(ArgumentError("Output labels $iout are not unique"))
     for label in iout

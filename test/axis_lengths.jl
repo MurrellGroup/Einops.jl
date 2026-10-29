@@ -7,8 +7,8 @@ using Test
         x = rand(3, 2)
         # an integer or a keyword fixes the whole axis
         @test reduce(sum, x, einops"3 b -> b") == vec(sum(x, dims=1))
-        @test_throws "Input axis 1 has length 3, but the pattern expects 4" reduce(sum, x, einops"4 b -> b")
-        @test_throws "Input axis 1 has length 3, but the pattern expects 4" @reduce(sum, x, "4 b -> b")
+        @test_throws "Axis 1 of the input has length 3, but the pattern expects 4" reduce(sum, x, einops"4 b -> b")
+        @test_throws "Axis 1 of the input has length 3, but the pattern expects 4" @reduce(sum, x, "4 b -> b")
         @test_throws "expects 4 (a = 4)" reduce(sum, x, einops"a b -> b"; a=4)
         @test_throws "expects 4 (a = 4)" rearrange(x, einops"a b -> b a"; a=4)
         @test_throws "expects 4 (a = 4)" reshape(x, einops"a b -> (a b)"; a=4)
@@ -16,8 +16,8 @@ using Test
         @test_throws "expects 4 (a = 4)" @rearrange(x, "a b -> b a", a=4)
         @test rearrange(x, einops"a b -> b a"; a=3) == permutedims(x)
         # `1` is the length-one case of the same rule
-        @test_throws "Input axis 1 has length 3, but the pattern expects 1" @reduce(sum, x, "1 b -> b")
-        @test_throws "Input axis 1 has length 3, but the pattern expects 1" @rearrange(x, "1 b -> b")
+        @test_throws "Axis 1 of the input has length 3, but the pattern expects 1" @reduce(sum, x, "1 b -> b")
+        @test_throws "Axis 1 of the input has length 3, but the pattern expects 1" @rearrange(x, "1 b -> b")
         @test @reduce(sum, rand(1, 2), "1 b -> b") |> size == (2,)
 
         # a group with one name left to infer: the known part must divide the axis
@@ -32,11 +32,11 @@ using Test
         # past an ellipsis, the message names the input axis, not the pattern entry
         y = rand(2, 3, 5, 4)
         @test reduce(sum, y, einops"a ... 4 -> a ...") ≈ dropdims(sum(y, dims=4), dims=4)
-        @test_throws "Input axis 4 has length 4, but the pattern expects 3" reduce(sum, y, einops"a ... 3 -> a ...")
-        @test_throws "Input axis 4 has length 4, but the pattern expects 3" @reduce(sum, y, "a ... 3 -> a ...")
-        @test_throws "Input axis 4 has length 4" @rearrange(y, "a ... t -> t ... a", t=3)
-        @test_throws "Input axis 4 has length 4" @repeat(y, "a ... t -> a ... t r", t=3, r=2)
-        @test_throws "Input axis 4 has length 4" @reshape(y, "a ... t -> a ... t", t=3)
+        @test_throws "Axis 4 of the input has length 4, but the pattern expects 3" reduce(sum, y, einops"a ... 3 -> a ...")
+        @test_throws "Axis 4 of the input has length 4, but the pattern expects 3" @reduce(sum, y, "a ... 3 -> a ...")
+        @test_throws "Axis 4 of the input has length 4" @rearrange(y, "a ... t -> t ... a", t=3)
+        @test_throws "Axis 4 of the input has length 4" @repeat(y, "a ... t -> a ... t r", t=3, r=2)
+        @test_throws "Axis 4 of the input has length 4" @reshape(y, "a ... t -> a ... t", t=3)
 
         # einsum checks the lengths given for its operands
         A, B = rand(2, 3), rand(3, 4)
@@ -51,15 +51,15 @@ using Test
         @test rearrange(vec(x), einops"(1 b) -> b") == vec(x)
         @test rearrange(rand(1, 2), einops"(1) b -> b") |> size == (2,)
         @test reduce(sum, reshape(x, 6), einops"(a 1 b) -> b"; a=2) == vec(sum(x, dims=1))
-        @test_throws "Input axis 1 has length 2, but the pattern expects 1" rearrange(x, einops"(1 1) b -> b")
+        @test_throws "Axis 1 of the input has length 2, but the pattern expects 1" rearrange(x, einops"(1 1) b -> b")
         for y in (rand(2, 3), rand(2, 3, 4))
             @test @rearrange(y, "a ... -> (... 1 a)") == rearrange(y, einops"a ... -> (... a)")
             @test rearrange(y, einops"a ... -> (... 1 a)") == rearrange(y, einops"a ... -> (... a)")
         end
         @test einsum(x, rand(3, 4), einops"i j, j k -> (i 1 k)") |> size == (8,)
         # other integers can't be carried through, and say so before anything runs
-        @test_throws "Integer 3 in pattern" @macroexpand @rearrange(x, "a b -> (b a 3)")
-        @test_throws "Integer 3 in pattern" rearrange(rand(6), einops"(a 3) -> a")
+        @test_throws "Unnamed axis `3`" @macroexpand @rearrange(x, "a b -> (b a 3)")
+        @test_throws "Unnamed axis `3`" rearrange(rand(6), einops"(a 3) -> a")
     end
 
     @testset "interpolation (#35)" begin
@@ -85,24 +85,24 @@ using Test
         @test @reduce(sum, rand(1, 3), "$one b -> b") |> size == (3,)
         @test @repeat(rand(3), "b -> b $one") |> size == (3, 1)
         # like an integer, it can't be carried through, whatever its value
-        @test_throws "`\$k` in pattern" rearrange(x, einops"($k d) n -> d n $k")
-        @test_throws "`\$k` in pattern" @macroexpand @rearrange(x, "($k d) n -> d n $k")
-        @test_throws "`\$one` in pattern" @macroexpand @rearrange(x, "a b -> a b $one")
-        @test_throws "`\$k` in pattern" reshape(x, einops"($k b) c -> $k (b c)")
-        @test_throws "`\$k` in pattern" @macroexpand @reduce(sum, x, "a b -> a $k")
-        @test_throws "`\$(k + 1)` in pattern" @macroexpand @repeat(x, "($(k + 1) a) b -> a b")
+        @test_throws "Unnamed axis `\$k`" rearrange(x, einops"($k d) n -> d n $k")
+        @test_throws "Unnamed axis `\$k`" @macroexpand @rearrange(x, "($k d) n -> d n $k")
+        @test_throws "Unnamed axis `\$one`" @macroexpand @rearrange(x, "a b -> a b $one")
+        @test_throws "Unnamed axis `\$k`" reshape(x, einops"($k b) c -> $k (b c)")
+        @test_throws "Unnamed axis `\$k`" @macroexpand @reduce(sum, x, "a b -> a $k")
+        @test_throws "Unnamed axis `\$(k + 1)`" @macroexpand @repeat(x, "($(k + 1) a) b -> a b")
         # einsum could only sum such an axis out, which a name does too
         A, B = rand(6, 3), rand(3, 5)
-        @test_throws "takes no interpolated lengths" einsum(A, B, einops"($k i) j, j l -> i l")
-        @test_throws "takes no interpolated lengths" @macroexpand @einsum(A, B, "($k i) j, j l -> i l")
+        @test_throws "isn't supported by `einsum`" einsum(A, B, einops"($k i) j, j l -> i l")
+        @test_throws "isn't supported by `einsum`" @macroexpand @einsum(A, B, "($k i) j, j l -> i l")
         # it broadcasts like a pattern
         z = reduce(sum, x, einops"(2 b) c -> b c")
         @test reduce.(sum, (x, x), einops"($k b) c -> b c") == (z, z)
         # interpolated lengths are checked like any other
         @test_throws "expects a multiple of 4" reduce(sum, x, einops"($(k + 2) b) c -> b c")
-        @test_throws "Input axis 1 has length 6, but the pattern expects 2" @reduce(sum, x, "$k b -> b")
+        @test_throws "Axis 1 of the input has length 6, but the pattern expects 2" @reduce(sum, x, "$k b -> b")
         # only arrow patterns take it, and `$` needs something to interpolate
-        @test_throws "only supported in patterns with `->`" Einops.parse_interpolated_pattern(Einops.interpolation_parts("a \$k"))
+        @test_throws "needs a pattern with `->`" Einops.parse_interpolated_pattern(Einops.interpolation_parts("a \$k"))
         @test_throws "must be followed by" Einops.interpolation_parts("a \$ b -> a")
     end
 

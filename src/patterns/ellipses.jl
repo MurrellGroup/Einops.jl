@@ -1,12 +1,34 @@
-function ellipsis_replacement(side, N)
-    count(==(Ellipsis()), side) <= 1 || throw("At most one ellipsis is allowed: $side")
-    return anonymous_symbols(:__ellipsis, N - length(side) + 1)
+# An input side in a message: the left side, or one operand of several.
+side_name(k, n) = n == 1 ? "on the left side" : "in operand $k"
+input_name(k, n) = n == 1 ? "the input" : "operand $k"
+
+# What every op asks of a pattern's ellipses: at most one to a side (to each operand of an
+# einsum), outside any group on the left, and on the right only if also on the left.
+function check_ellipses(inputs::Tuple, right)
+    for (k, side) in enumerate(inputs)
+        where = side_name(k, length(inputs))
+        count(==(Ellipsis()), flatten(side)) <= 1 || throw(ArgumentError("`...` appears more than once $where"))
+        Ellipsis() ∈ flatten(side) && Ellipsis() ∉ side && throw(ArgumentError("`...` can't be in a group $where"))
+    end
+    count(==(Ellipsis()), flatten(right)) <= 1 || throw(ArgumentError("`...` appears more than once on the right side"))
+    Ellipsis() ∈ flatten(right) && all(side -> Ellipsis() ∉ side, inputs) && throw(ArgumentError("`...` is only on the right side"))
+    return nothing
 end
 
+# The rank a side asks of its array: its length, or at least what is left beside an ellipsis.
+function check_rank(side, N, input="the input")
+    ellipsis = Ellipsis() in side
+    n = length(side) - ellipsis
+    (ellipsis ? N >= n : N == n) || throw_rank(N, n, ellipsis, input)
+    return nothing
+end
+
+@non_differentiable check_rank(::Any...)
+
+ellipsis_replacement(side, N) = anonymous_symbols(:__ellipsis, N - length(side) + 1)
+
 function replace_ellipses_left(left, N)
-    n = count(==(Ellipsis()), left)
-    n == 0 && return left
-    n == 1 || throw("Only one ellipsis is allowed on left side: $left")
+    Ellipsis() in left || return left
     replacement = ellipsis_replacement(left, N)
     new_left = insertat(left, only(findfirst(==(Ellipsis()), left)), replacement)
     return new_left
@@ -31,12 +53,9 @@ end
 
 function replace_ellipses(left, right, N)
     left isa List && throw_operand_list(left)
-    if Ellipsis() ∈ flatten(left)
-        Ellipsis() ∉ left && throw("Ellipsis is not allowed to be nested on left side.")
-    else
-        Ellipsis() ∈ flatten(right) && throw("Ellipsis found on right side but not on left side: $(ArrowPattern{left,right}())")
-        return left, right
-    end
+    check_ellipses((left,), right)
+    check_rank(left, N)
+    Ellipsis() ∈ left || return left, right
     new_left = replace_ellipses_left(left, N)
     new_right = replace_ellipses_right(left, right, N)
     new_left, new_right
@@ -44,7 +63,6 @@ end
 
 function replace_ellipses_parse_shape(pattern, N)
     Ellipsis() in pattern || return pattern
-    count(==(Ellipsis()), pattern) == 1 || throw("Only one ellipsis is allowed: $pattern")
     ellipsis_index = findfirst(==(Ellipsis()), pattern)
     new_pattern = insertat(pattern, ellipsis_index, ntuple(Returns(-), N - length(pattern) + 1))
     return new_pattern
@@ -52,10 +70,7 @@ end
 
 function replace_ellipses_collapse(right, N)
     Ellipsis() ∈ flatten(right) || return right
-    count(==(Ellipsis()), flatten(right)) == 1 || throw("Only one ellipsis is allowed: $right")
-    symbol_count = length(extract(Symbol, right))
-    remaining = N - symbol_count
-    remaining >= 0 || throw("Ellipsis represents a negative number of dimensions: $right with N=$N")
+    remaining = N - length(extract(Symbol, right))
     replacement = anonymous_symbols(:__ellipsis, remaining)
     if Ellipsis() in right
         return insertat(right, only(findfirst(==(Ellipsis()), right)), replacement)
@@ -69,15 +84,11 @@ function replace_ellipses_collapse(right, N)
 end
 
 # `left` holds one side per operand, and `Ns` their ranks. Returns the new `(left, right)`.
+# `check_einsum` has made sure every ellipsis spans as many axes.
 @generated function replace_ellipses_einsum(::Val{left}, ::Val{right}, ::Val{Ns}) where {left,right,Ns}
-    Ellipsis() ∉ flatten(left) && Ellipsis() ∉ flatten(right) && return QuoteNode((left, right))
-    Ellipsis() ∉ flatten(left) && Ellipsis() ∈ flatten(right) && throw("Found ellipsis on right side but not left side: $(pattern_string(left, right))")
-
-    # Arrays whose index-tuples contain an ellipsis anywhere (possibly nested)
-    inds = findall(t -> Ellipsis() ∈ flatten(t), left)
-    replacements = [ellipsis_replacement(side, N) for (side, N) in zip(left[inds], Ns[inds])]
-    allequal(replacements) || throw("Ellipses used for different number of dimensions")
-    replacement = only(unique(replacements))
+    Ellipsis() ∉ flatten(left) && return QuoteNode((left, right))
+    k = findfirst(side -> Ellipsis() ∈ side, left)
+    replacement = ellipsis_replacement(left[k], Ns[k])
 
     # Recursively replace the first ellipsis occurrence in a (possibly nested) tuple
     function replace_in_tuple(t)

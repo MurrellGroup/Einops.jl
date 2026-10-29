@@ -132,7 +132,7 @@ end
               reduce(sum, x, einops"(a b) j -> b"; a=2)
         scalar = fill(3.0)
         @test einsum(scalar, einops"->") == scalar
-        @test_throws ArgumentError einsum(scalar, einops"() ->")
+        @test_throws DimensionMismatch einsum(scalar, einops"() ->")
         @test einops"a, -> a" === (einops"a, -> a")
         @test einops"a, a, -> a" === (einops"a, a, -> a")
         v = [1.0, 2.0]
@@ -154,7 +154,7 @@ end
         @test einsum(expected, einops"a b -> a b") == expected
         @test einsum(x, einops"(a b) -> a b"; a=2) == expected
         @test einsum(x, Einops.ArrowPattern{((:a, :b),), (:a, :b)}(); a=2) == expected
-        @test_throws ArgumentError einsum(expected, einops"(a b) -> a b")
+        @test_throws "The input has 2 dimensions, but the pattern expects 1" einsum(expected, einops"(a b) -> a b")
         @test einsum(reshape(x, 2, 3), einops"(a b) (c d) -> a b c d"; a=2, c=3) == reshape(x, 2, 1, 3, 1)
         @test einsum(x, fill(2.0), einops"(a b), -> a b"; a=2) == 2 .* expected
         # Two operands are two operands, whatever the number of arrays.

@@ -28,6 +28,8 @@ julia> parse_shape(rand(2,2,4), einops"a a b")  # duplicate 'a' with same size
 """
 @generated function parse_shape(x, ::Val{pattern}) where {pattern}
     N = ndims(x)
+    count(==(Ellipsis()), pattern) <= 1 || throw(ArgumentError("`...` appears more than once in the pattern"))
+    check_rank(pattern, N)
     pattern′ = replace_ellipses_parse_shape(pattern, N)
     inds = findall(x -> x isa Symbol, pattern′)
     names = pattern′[inds]    
@@ -39,8 +41,9 @@ julia> parse_shape(rand(2,2,4), einops"a a b")  # duplicate 'a' with same size
             first_idx = inds[name_indices[1]]
             for i in 2:length(name_indices)
                 idx = inds[name_indices[i]]
-                push!(duplicate_checks, :(size(x, $first_idx) == size(x, $idx) || 
-                    error("Dimension $($(QuoteNode(name))) appears multiple times with different sizes: $(size(x, $first_idx)) and $(size(x, $idx))")))
+                push!(duplicate_checks, :(size(x, $first_idx) == size(x, $idx) ||
+                    throw(DimensionMismatch(string("`", $(QuoteNode(name)), "` has length ", size(x, $first_idx), " at axis ", $first_idx,
+                                                   " but ", size(x, $idx), " at axis ", $idx)))))
             end
         end
     end
@@ -54,6 +57,7 @@ end
 # output type is statically knowable when pattern doesn't contain ellipses
 # (needs to be constant-propagated)
 function parse_shape(x, pattern::Tuple{Vararg{Union{Symbol,typeof(-)}}})
+    check_rank(pattern, ndims(x))
     names = extract(Symbol, pattern)
     inds = findtype(Symbol, pattern)
     shape_info = @ignore_derivatives NamedTuple{names,NTuple{length(inds),Int}}(size(x, i) for i in inds)

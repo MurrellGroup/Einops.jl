@@ -77,12 +77,13 @@ function rearrange_body_ellipsis(L, R, context_names)
     return body
 end
 
-@generated function expand(x, ::Val{L}; context...) where {L}
+# `input` names the operand in messages.
+@generated function expand(x, ::Val{L}, ::Val{input}=Val(Symbol("the input")); context...) where {L,input}
     N = ndims(x)
     left = replace_ellipses_left(L, N)
     context_names = pairs_type_to_names(context)
     shape_in = get_shape_in(N, left, context_names; allow_repeats=true)
-    body = Expr(:block, :(context = NamedTuple(context)), axis_length_checks(left, context_names)...)
+    body = Expr(:block, :(context = NamedTuple(context)), axis_length_checks(left, context_names; input=String(input))...)
     isnothing(shape_in) || push!(body.args, :(x = _reshape(x, $shape_in)))
     push!(body.args, :(return x))
     return body

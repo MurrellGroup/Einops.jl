@@ -125,12 +125,15 @@ using Test
         # A rank-mismatched no-op pattern must still error, matching the function path,
         # rather than silently returning the array (the inlined plan skips get_shape_in's
         # rank check, so the macro re-emits it).
-        @test_throws ArgumentError @rearrange(rand(2, 3, 4), "a b -> a b")
-        @test_throws ArgumentError @reshape(rand(2, 3, 4), "a b -> a b")
-        @test_throws ArgumentError @reduce(sum, rand(5), "a b -> a")
-        @test_throws ArgumentError @repeat(rand(2, 3, 4), "a b -> a b r", r=2)
+        @test_throws DimensionMismatch @rearrange(rand(2, 3, 4), "a b -> a b")
+        @test_throws DimensionMismatch @reshape(rand(2, 3, 4), "a b -> a b")
+        @test_throws DimensionMismatch @reduce(sum, rand(5), "a b -> a")
+        @test_throws DimensionMismatch @repeat(rand(2, 3, 4), "a b -> a b r", r=2)
         # ellipsis must span ≥ 0 dims
-        @test_throws ArgumentError @rearrange(rand(2), "a b ... -> ... b a")
+        @test_throws DimensionMismatch @rearrange(rand(2), "a b ... -> ... b a")
+        # and both say so as the function path does
+        @test_throws "The input has 3 dimensions, but the pattern expects 4" @rearrange(rand(2, 3, 4), "a b c d -> a b c d")
+        @test_throws "The input has 3 dimensions, but the pattern expects at least 4" @rearrange(rand(2, 3, 4), "a b c d ... -> a b c d ...")
         @test (@rearrange(rand(2, 3), "a b ... -> ... b a"); true)  # 0-dim ellipsis is fine
     end
 
