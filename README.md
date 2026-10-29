@@ -213,7 +213,7 @@ Every length a pattern fixes is checked against the input:
 
 ```julia
 julia> @reduce(sum, rand(3, 2), "4 b -> b")
-ERROR: DimensionMismatch: Input axis 1 has length 3, but the pattern expects 4
+ERROR: DimensionMismatch: Axis 1 of the input has length 3, but the pattern expects 4
 ```
 
 ## Contributing

@@ -34,8 +34,8 @@ using Test, Statistics
     @testset "error handling" begin
         x = rand(2, 3, 35)
         @test_throws "right side" reduce(sum, x, einops"a b (c c2) -> a b d c c2", c2=7)
-        @test_throws ["Left names", "not unique"] reduce(sum, x, einops"a a (c c2) -> a c c2", c2=7)
-        @test_throws ["Right names", "not unique"] reduce(sum, x, einops"a b (c c2) -> a a c c2", c2=7)
+        @test_throws "`a` appears more than once on the left side" reduce(sum, x, einops"a a (c c2) -> a c c2", c2=7)
+        @test_throws "`a` appears more than once on the right side" reduce(sum, x, einops"a b (c c2) -> a a c c2", c2=7)
     end
 
     @testset "different operations" begin

@@ -7,9 +7,50 @@ _reshape(x, shape) = Rewrap.reshape(x, shape)
 
 pairs_type_to_names(::Type{<:Base.Pairs{Symbol,<:Any,<:Any,<:NamedTuple{names}}}) where names = names
 
+# === Messages ===
+#
+# A message spells what it is about as the pattern writes it: `a`, `(h w)`, `...`, `$k`,
+# never a tuple or a name Einops made up. "Left" and "right" are the pattern's
+# sides; "the input" (or "operand 2" of an einsum) is the array. A pattern that can't work
+# throws an `ArgumentError`, an array whose shape doesn't fit the pattern a
+# `DimensionMismatch`. A remedy, when there is one, follows a semicolon.
+
+# Names Einops makes up for itself (an integer's axis, an ellipsis' axes) stay out of messages.
+is_hidden_name(name::Symbol) = startswith(String(name), "__")
+
+# A name as the pattern wrote it: the axes an ellipsis became are `...`, and an integer's or
+# an interpolation's axis is the integer or `$x` it stands for.
+function display_name(name::Symbol)
+    s = String(name)
+    startswith(s, "__ellipsis") && return "..."
+    i = findlast('#', s)
+    return is_hidden_name(name) && !isnothing(i) ? s[3:prevind(s, i)] : s
+end
+
+# A side as the pattern writes it, with the axes an ellipsis became one `...`. An axis
+# is spelled as the side `(dim,)`.
+spell(side) = replace(spell_side(side, display_name), r"\.\.\.( \.\.\.)+" => "...")
+
+# "`a`", "`a` and `b`", "`a`, `b` and `c`": the names, each once.
+shown_names(names) = unique(map(display_name, collect(names)))
+quoted(names) = join(("`$n`" for n in shown_names(names)), ", ", " and ")
+
+# The names and the verb that agrees with them: "`a` is", "`a` and `b` are".
+listing(names, singular, plural) = string(quoted(names), " ", length(shown_names(names)) == 1 ? singular : plural)
+
+throw_repeated(names, where) = throw(ArgumentError(string(
+    listing(filter(n -> count(==(n), names) > 1, unique(names)), "appears", "appear"), " more than once ", where)))
+
+# The array's rank against the pattern's side for it: `n` exactly, or at least `n` when an
+# ellipsis (which spans ≥ 0 dims) takes up the rest.
+@noinline function throw_rank(N, n, ellipsis, input="the input")
+    expected = ellipsis ? "at least $n" : string(n)
+    throw(DimensionMismatch("$(uppercasefirst(input)) has $N dimension$(N == 1 ? "" : "s"), but the pattern expects $expected"))
+end
+
 function get_shape_in(N, left, context_names; allow_repeats=false)
-    length(left) == N || throw(ArgumentError("Input length $(length(left)) does not match array dimensionality $N"))
-    allunique(extract(Symbol, left)) || allow_repeats || throw(ArgumentError("Left names $(left) are not unique"))
+    length(left) == N || throw_rank(N, length(left), false)
+    allunique(extract(Symbol, left)) || allow_repeats || throw_repeated(extract(Symbol, left), "on the left side")
     left isa Tuple{Vararg{Symbol}} && return nothing
     new_shape = :()
     ops = new_shape.args
@@ -22,7 +63,9 @@ function get_shape_in(N, left, context_names; allow_repeats=false)
             push!(ops, :($Keep()))
         else
             known_size = filter(in(context_names), names)
-            length(names) - length(known_size) <= 1 || throw(ArgumentError("Unknown dimension sizes: $(filter(∉(context_names), names))"))
+            unknown = filter(∉(context_names), names)
+            length(unknown) <= 1 || throw(ArgumentError(
+                "Can't infer $(quoted(unknown)) in `$(spell((input_dim,)))`; pass the lengths of all but one as keywords"))
             sizes_tuple = Expr(:tuple, (name in known_size ? :(getfield(context, $(QuoteNode(name)))) : :(:) for name in names)...)
             push!(ops, :($Split(1, $sizes_tuple)))
         end
@@ -35,17 +78,19 @@ end
 function axis_names(dim)
     dim isa Symbol && return (dim,)
     dim == 1 && return ()
-    dim isa Integer && throw_anonymous_axis("Integer $dim")
-    dim isa Tuple || throw(ArgumentError("Invalid dimension in pattern: $dim"))
+    dim isa Integer && throw_anonymous_axis(dim)
+    dim isa Tuple || throw(ArgumentError("Invalid axis in pattern: `$(spell((dim,)))`"))
     for el in dim
-        el isa Symbol || el == 1 || (el isa Integer ? throw_anonymous_axis("Integer $el") : throw(ArgumentError("Invalid dimension in pattern: $dim")))
+        el isa Tuple && throw(ArgumentError("Groups can't be nested: `$(spell((dim,)))`"))
+        el isa Integer && el != 1 && throw_anonymous_axis(el)
+        el isa Union{Symbol,Integer} || throw(ArgumentError("Invalid axis in pattern: `$(spell((dim,)))`"))
     end
     return filter(el -> el isa Symbol, dim)
 end
 
-throw_anonymous_axis(what) = throw(ArgumentError(
-    "$what in pattern: an axis given only by its length can be reduced (left side of `reduce`) " *
-    "or created (right side of `repeat`), but not carried through. Name it, and pass its length as a keyword."))
+throw_anonymous_axis(dim) = throw(ArgumentError(
+    "Unnamed axis `$(dim isa Symbol ? display_name(dim) : dim)` can only be reduced (left side of `reduce`) " *
+    "or created (right side of `repeat`); name it and pass its length as a keyword"))
 
 # An axis given only by its length, an integer other than 1 or an interpolated `$x`, on a
 # side where it would have to be carried through rather than reduced or created.
@@ -53,10 +98,8 @@ function reject_anonymous_axes(side)
     for dim in side
         if dim isa Tuple
             reject_anonymous_axes(dim)
-        elseif dim isa Integer && dim != 1
-            throw_anonymous_axis("Integer $dim")
-        elseif dim isa Symbol && is_interpolated(dim)
-            throw_anonymous_axis("`$(interpolated_source(dim))`")
+        elseif dim isa Integer && dim != 1 || dim isa Symbol && is_interpolated(dim)
+            throw_anonymous_axis(dim)
         end
     end
 end
@@ -66,7 +109,7 @@ end
 # not at all. A unit, an integer or a name with a known length fixes the whole axis; in a
 # group with one name left to infer, the known part must divide it. `axis(i)` maps the
 # position of a left entry to the input axis it covers.
-function axis_length_checks(left, known; axis=identity)
+function axis_length_checks(left, known; axis=identity, input="the input")
     checks = Expr[]
     for (i, dim) in enumerate(left)
         names = axis_names(dim)
@@ -78,36 +121,46 @@ function axis_length_checks(left, known; axis=identity)
         shown = Tuple(unique(filter(!is_hidden_name, given)))
         shown_lengths = Expr(:tuple, (:(getfield(context, $(QuoteNode(name)))) for name in shown)...)
         ax = axis(i)
-        push!(checks, :(check_axis_length(size(x, $ax), $n, $ax, $whole, NamedTuple{$shown}($shown_lengths))))
+        push!(checks, :(check_axis_length(size(x, $ax), $n, $ax, $whole, NamedTuple{$shown}($shown_lengths), $input)))
     end
     return checks
 end
 
-# Names Einops makes up for itself (an integer's axis, an ellipsis' axes) stay out of messages.
-is_hidden_name(name::Symbol) = startswith(String(name), "__")
-
-@inline function check_axis_length(len, n, i, whole, given)
-    (whole ? len == n : n != 0 && rem(len, n) == 0) || throw_axis_length(len, n, i, whole, given)
+@inline function check_axis_length(len, n, i, whole, given, input)
+    (whole ? len == n : n != 0 && rem(len, n) == 0) || throw_axis_length(len, n, i, whole, given, input)
     return nothing
 end
 
-@noinline function throw_axis_length(len, n, i, whole, given)
+@noinline function throw_axis_length(len, n, i, whole, given, input)
     expected = whole ? string(n) : "a multiple of $n"
     names = isempty(given) ? "" : string(" (", join(("$k = $v" for (k, v) in pairs(given)), ", "), ")")
-    throw(DimensionMismatch("Input axis $i has length $len, but the pattern expects $expected$names"))
+    throw(DimensionMismatch("Axis $i of $input has length $len, but the pattern expects $expected$names"))
 end
 
 @non_differentiable check_axis_length(::Any...)
 
 get_mapping(left, right) = Tuple(findfirst.(isequal.(right), (left,)))
 
+# A name on one side only: what `reduce` does to the left side and `repeat` to the right,
+# and nothing else may.
+function check_one_sided(left_names, right_names; removes=false, creates=false)
+    only_left = setdiff(left_names, right_names)
+    removes || isempty(only_left) ||
+        throw(ArgumentError("$(listing(only_left, "is", "are")) only on the left side; to remove an axis, use `reduce`"))
+    only_right = setdiff(right_names, left_names)
+    creates || isempty(only_right) ||
+        throw(ArgumentError("$(listing(only_right, "is", "are")) only on the right side; to create an axis, use `repeat`"))
+    return nothing
+end
+
 function get_permutation(left, right)
-    isempty(setdiff(left, right)) || throw(ArgumentError("Set of left names $(left) does not match set of right names $(right)"))
+    check_one_sided(left, right)
     return get_mapping(left, right)
 end
 
 function get_shape_out(right)
-    allunique(extract(Symbol, right)) || throw(ArgumentError("Right names $(right) are not unique"))
+    names = extract(Symbol, right)
+    allunique(names) || throw_repeated(names, "on the right side")
     right isa Tuple{Vararg{Symbol}} && return nothing
     new_shape = :()
     sizes = new_shape.args

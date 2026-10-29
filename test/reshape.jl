@@ -12,9 +12,9 @@ using Test
 
     @testset "error on permutation" begin
         x = rand(2, 3, 5)
-        @test_throws "reshape requires symbols in same order" reshape(x, einops"a b c -> c b a")
-        @test_throws "reshape requires symbols in same order" reshape(x, einops"a b c -> b a c")
-        @test_throws "reshape requires symbols in same order" reshape(x, einops"a b c -> (b a) c")
+        @test_throws "`reshape` can't reorder names" reshape(x, einops"a b c -> c b a")
+        @test_throws "`reshape` can't reorder names" reshape(x, einops"a b c -> b a c")
+        @test_throws "`reshape` can't reorder names" reshape(x, einops"a b c -> (b a) c")
     end
 
     @testset "ellipses support" begin

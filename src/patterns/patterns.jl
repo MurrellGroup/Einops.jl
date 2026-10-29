@@ -23,8 +23,7 @@ Base.iterate(l::List, i=1) = i > length(l) ? nothing : (l[i], i + 1)
 Base.map(f, l::List) = map(f, Tuple(l))
 
 throw_operand_list(L::List) = throw(ArgumentError(
-    "The pattern lists $(length(L)) operands, separated by commas, which only `einsum` takes. " *
-    "Every other operation takes one array."))
+    "The pattern lists $(length(L)) operands, but only `einsum` takes more than one"))
 
 function is_valid_side(x)
     x isa Tuple || return false

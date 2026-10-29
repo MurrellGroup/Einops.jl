@@ -2,8 +2,9 @@ const Wildcard = typeof(*)
 const PackPattern{N} = NTuple{N,Union{Symbol,Wildcard}}
 
 function check_packing_pattern(pattern::PackPattern)
-    count(x -> x isa Wildcard, pattern) == 1 || error("Only one wildcard (*) is allowed in the pattern")
-    allunique(pattern) || error("Pattern $(pattern) has duplicate elements")
+    n = count(x -> x isa Wildcard, pattern)
+    n == 1 || throw(ArgumentError("A pack pattern takes exactly one `*`, but has $(n == 0 ? "none" : n)"))
+    allunique(pattern) || throw_repeated(pattern, "in the pattern")
     return nothing
 end
 
@@ -41,6 +42,9 @@ julia> packed_shapes
 """
 function pack(unpacked_arrays, pattern::PackPattern{N}) where N
     check_packing_pattern(pattern)
+    for (i, A) in enumerate(unpacked_arrays)
+        ndims(A) >= N - 1 || throw_rank(ndims(A), N - 1, true, "array $i")
+    end
     reshaped_arrays = [reshape(A, packed_size(size(A), pattern)::Dims{N})::AbstractArray{<:Any,N} for A in unpacked_arrays]
     concatenated_array::AbstractArray{<:Any,N} = cat(reshaped_arrays..., dims=find_wildcard(pattern))
     packed_shapes = Dims[size_wildcard(size(unpacked_array), pattern) for unpacked_array in unpacked_arrays]
@@ -89,3 +93,7 @@ function unpack(packed_array::AbstractArray{<:Any,N}, packed_shapes, pattern::Pa
 end
 
 unpack(packed_array, packed_shapes, ::Val{T}) where T = unpack(packed_array, packed_shapes, T)
+
+# The packed array's rank doesn't match the pattern's.
+unpack(packed_array::AbstractArray, packed_shapes, pattern::PackPattern) =
+    throw_rank(ndims(packed_array), length(pattern), false)

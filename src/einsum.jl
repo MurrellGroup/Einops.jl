@@ -4,15 +4,10 @@ function get_size_dict(arrays, indices)
     return Dict{Symbol,Int}(zip(keys(size_named_tuple), values(size_named_tuple)))
 end
 
+# `check_einsum` has ruled out integers other than 1, which are units and drop out here.
 function omeinsum_indices(L′, R′)
-    L_flat = Tuple(map(flatten, L′))
-    R_flat = flatten(R′)
-    L_ome = Tuple(begin
-        any(x -> x isa Int && x != 1, li) && throw(ArgumentError("Only singleton integer dimensions (1) are allowed in left indices: $li"))
-        Tuple(e for e in li if e isa Symbol)
-    end for li in L_flat)
-    any(x -> x isa Int && x != 1, R_flat) && throw(ArgumentError("Only singleton integer dimensions (1) are allowed in right indices: $R_flat"))
-    R_ome = Tuple(e for e in R_flat if e isa Symbol)
+    L_ome = Tuple(Tuple(e for e in flatten(li) if e isa Symbol) for li in L′)
+    R_ome = Tuple(e for e in flatten(R′) if e isa Symbol)
     return L_ome, R_ome
 end
 
@@ -31,12 +26,45 @@ function _einsum(pattern::ArrowPattern, arrays::Vararg{AbstractArray}; optimizer
     return _contract_einsum(pattern, arrays...; optimizer, context...)
 end
 
-_einsum(::BoundPattern, ::Vararg{AbstractArray}; context...) = throw_interpolated_einsum()
+_einsum(p::BoundPattern, ::Vararg{AbstractArray}; context...) = throw_unnamed_einsum(first(keys(p.lengths)))
 
 # An axis given only by its length could only be summed out, which a named axis does too.
-throw_interpolated_einsum() = throw(ArgumentError(
-    "`einsum` takes no interpolated lengths: an axis given only by its length could only be summed out, " *
-    "which a named axis does too. Name it, and pass its length as a keyword."))
+throw_unnamed_einsum(dim) = throw(ArgumentError(
+    "Unnamed axis `$(dim isa Symbol ? display_name(dim) : dim)` isn't supported by `einsum`; " *
+    "name it and pass its length as a keyword"))
+
+# What only the whole pattern and every operand's rank can show, checked once, as the
+# method is generated: `operands` holds one side per operand, and `Ns` their ranks.
+@generated function check_einsum(::Val{operands}, ::Val{R}, ::Val{Ns}) where {operands,R,Ns}
+    n = length(operands)
+    check_ellipses(operands, R)
+    for (k, side) in enumerate(operands)
+        check_rank(side, Ns[k], input_name(k, n))
+    end
+    for side in (operands..., R), dim in flatten(side)
+        dim isa Integer && dim != 1 && throw_unnamed_einsum(dim)
+    end
+    allunique(extract(Symbol, R)) || throw_repeated(extract(Symbol, R), "on the right side")
+    only_right = setdiff(extract(Symbol, R), extract(Symbol, operands))
+    isempty(only_right) || throw(ArgumentError("$(listing(only_right, "is", "are")) on the right side but in no operand"))
+    spans = [(k, Ns[k] - length(side) + 1) for (k, side) in enumerate(operands) if Ellipsis() in side]
+    for (k, span) in spans
+        span == spans[1][2] || throw(DimensionMismatch(
+            "`...` spans $(spans[1][2]) dimension$(spans[1][2] == 1 ? "" : "s") in operand $(spans[1][1]) but $span in operand $k"))
+    end
+    return nothing
+end
+
+# Operands that share a name must agree on its length.
+function check_shared_lengths(shapes)
+    for j in eachindex(shapes), i in 1:j-1, name in keys(shapes[i])
+        haskey(shapes[j], name) && shapes[i][name] != shapes[j][name] && throw(DimensionMismatch(
+            "`$name` has length $(shapes[i][name]) in operand $i but $(shapes[j][name]) in operand $j"))
+    end
+    return nothing
+end
+
+@non_differentiable check_shared_lengths(::Any)
 
 function _contract_einsum(
     ::ArrowPattern{L,R}, arrays::Vararg{AbstractArray};
@@ -48,15 +76,18 @@ function _contract_einsum(
     length(operands) == length(arrays) || throw(ArgumentError(
         "The pattern has $(length(operands)) operand$(length(operands) == 1 ? "" : "s"), " *
         "but $(length(arrays)) array$(length(arrays) == 1 ? " was" : "s were") given"))
+    @ignore_derivatives check_einsum(Val(operands), Val(R), Val(ndims.(arrays)))
     # Replace ellipses in operand patterns using per-array ranks
     L′, R′ = @ignore_derivatives replace_ellipses_einsum(Val(operands), Val(R), Val(ndims.(arrays)))
 
     # Infer dimension sizes from patterns and merge with user context
-    inferred = merge(parse_shape.(arrays, Val.(operands))...)
-    merged_context = merge(inferred, NamedTuple(context))
+    shapes = parse_shape.(arrays, Val.(operands))
+    check_shared_lengths(shapes)
+    merged_context = merge(merge(shapes...), NamedTuple(context))
 
     # Expand arrays according to possibly nested left indices
-    arrays = expand.(arrays, Val.(operands); merged_context...)
+    inputs = ntuple(k -> Val(Symbol(input_name(k, length(operands)))), length(operands))
+    arrays = expand.(arrays, Val.(operands), inputs; merged_context...)
 
     # Hand the flat symbol labels to the backend
     L_ome, R_ome = omeinsum_indices(L′, R′)

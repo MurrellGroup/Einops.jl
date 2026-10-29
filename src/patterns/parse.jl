@@ -1,8 +1,8 @@
 function parse_pattern(pattern::AbstractString)
     occursin("->", pattern) || return tokenize_generic(pattern)
     lhs, rhs = strip.(split(pattern, "->"; limit = 2))
-    occursin("->", rhs) && throw(ArgumentError("multiple \"->\" in pattern"))
-    occursin(",", rhs) && throw(ArgumentError("Commas are only allowed on the input side of a pattern"))
+    occursin("->", rhs) && throw(ArgumentError("Pattern has more than one `->`"))
+    occursin(",", rhs) && throw(ArgumentError("Commas separate einsum operands, which go left of `->`"))
     return ArrowPattern{tokenize_operands(lhs), tokenize_side(rhs)}()
 end
 
@@ -38,7 +38,7 @@ function tokenize_side(side::AbstractString)
             i = nextind(side, i)
         elseif c == ')'
             parse_token!(buf, tokens)
-            isempty(stack) && throw(ArgumentError("unmatched ')' in pattern"))
+            isempty(stack) && throw(ArgumentError("Unmatched `)` in pattern"))
             sub = tokens
             tokens = pop!(stack)
             push!(tokens, Tuple(sub))
@@ -48,7 +48,7 @@ function tokenize_side(side::AbstractString)
             i2 = nextind(side, i)
             i3 = i2 ≤ lastindex(side) ? nextind(side, i2) : i2
             (i3 ≤ lastindex(side) && side[i2] == '.' && side[i3] == '.') ||
-                throw(ArgumentError("single '.' not allowed in pattern"))
+                throw(ArgumentError("`.` in a pattern must be part of `...`"))
             push!(tokens, Ellipsis())
             i = nextind(side, i3)
         else
@@ -58,7 +58,7 @@ function tokenize_side(side::AbstractString)
     end
     parse_token!(buf, tokens)
 
-    !isempty(stack) && throw(ArgumentError("unmatched '(' in pattern"))
+    !isempty(stack) && throw(ArgumentError("Unmatched `(` in pattern"))
     return Tuple(tokens)
 end
 
@@ -74,7 +74,7 @@ map_special_tokens(x::Tuple) = Tuple(map(map_special_tokens, x))
 # producing nested tuples where appropriate. Reuse the side tokenizer and
 # then map special tokens like `_`, `*`, and `...`.
 tokenize_generic(pattern) = occursin(",", pattern) ?
-    throw(ArgumentError("Commas separate the operands of an einsum pattern, which has `->`: $pattern")) :
+    throw(ArgumentError("Commas separate einsum operands, so the pattern needs `->`")) :
     Val(map_special_tokens(tokenize_side(pattern)))
 
 # === Interpolation ===
@@ -95,7 +95,7 @@ function interpolation_parts(str::AbstractString)
         if str[i] == '$'
             j = nextind(str, i)
             j <= lastindex(str) && !isspace(str[j]) ||
-                throw(ArgumentError("`\$` in a pattern must be followed by a name or a parenthesized expression: $str"))
+                throw(ArgumentError("`\$` in a pattern must be followed by a name or a parenthesized expression"))
             push!(parts, String(take!(buf)))
             ex, i = Meta.parseatom(str, j)
             push!(parts, ex)
@@ -113,7 +113,6 @@ interpolation_placeholder(k) = Symbol("__interp_", k, "__")
 # The hidden name keeps the source, `$x`, for messages, and a count that makes it unique.
 interpolated_name(ex, k) = Symbol("__\$", ex isa Symbol ? ex : "($ex)", "#", k)
 is_interpolated(name::Symbol) = startswith(String(name), "__\$")
-interpolated_source(name::Symbol) = (s = String(name); s[3:prevind(s, findlast('#', s))])
 
 # Returns the pattern, and the name and expression of each interpolation.
 function parse_interpolated_pattern(parts)
@@ -127,7 +126,7 @@ function parse_interpolated_pattern(parts)
         end
     end
     pattern = parse_pattern(str)
-    pattern isa ArrowPattern || throw(ArgumentError("Interpolation is only supported in patterns with `->`"))
+    pattern isa ArrowPattern || throw(ArgumentError("Interpolating with `\$` needs a pattern with `->`"))
     renames = Dict(interpolation_placeholder(k) => name for (k, name) in enumerate(names))
     L, R = pattern
     return ArrowPattern{rename_axes(renames, L), rename_axes(renames, R)}(), names, exprs

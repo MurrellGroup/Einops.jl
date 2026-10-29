@@ -30,13 +30,13 @@ function einops_macro_call(f::Symbol, args)
         elseif Meta.isexpr(a, :(=))
             _collect_kw!(a, names, kwentries)
         elseif a isa AbstractString || Meta.isexpr(a, :string)
-            pattern_index == 0 || throw(ArgumentError("@$f expects a single string pattern argument"))
+            pattern_index == 0 || throw(ArgumentError("`@$f` takes only one pattern string"))
             if a isa AbstractString
                 pattern = parse_pattern(a)
             else
                 # `$x` is a hidden axis of length `x`, its value passed on as a keyword
-                f === :einsum && throw_interpolated_einsum()
                 pattern, interpolated, exprs = parse_interpolated_pattern(a.args)
+                f === :einsum && throw_unnamed_einsum(first(interpolated))
                 for (name, ex) in zip(interpolated, exprs)
                     push!(names, name); push!(kwentries, Expr(:kw, name, esc(ex)))
                 end
@@ -46,7 +46,7 @@ function einops_macro_call(f::Symbol, args)
             push!(positional, a)
         end
     end
-    pattern_index == 0 && throw(ArgumentError("@$f expects a string pattern argument"))
+    pattern_index == 0 && throw(ArgumentError("`@$f` takes its pattern as a string literal"))
 
     inlined = try_inline(f, pattern, positional, names, kwentries, has_splat)
     inlined === nothing || return inlined
@@ -84,11 +84,14 @@ function try_inline(f, pattern, positional, names, kwentries, has_splat)
 
     L, R = arrow_sides(pattern)
     L isa List && throw_operand_list(L)
+    check_ellipses((L,), R)
     has_ellipsis = Ellipsis() in flatten(L) || Ellipsis() in flatten(R)
     # A `; kws...` splat hides keys we'd need to resolve a multi-symbol left group's
     # inferred axis; without such a group the splat only supplies values, which stay
-    # available through the runtime NamedTuple.
+    # available through the runtime NamedTuple. That may include the lengths of the axes
+    # `repeat` creates, so those count as given.
     has_splat && has_multisymbol_group(L) && return nothing
+    has_splat && append!(names, setdiff(extract(Symbol, R), extract(Symbol, L)))
 
     plan = has_ellipsis ? ellipsis_body(L, R, Tuple(names)) :
                           static_body(length(L), L, R, Tuple(names))
@@ -101,15 +104,13 @@ end
 
 arrow_sides(::ArrowPattern{L,R}) where {L,R} = (L, R)
 
-# Inlining builds the plan with `length(L)`, so `get_shape_in`'s `ndims(x)` rank check
-# collapses to a tautology and is lost. Re-emit it: an exact rank without an ellipsis,
-# a lower bound (the ellipsis must span ≥ 0 dims) with one. The non-ellipsis message
-# matches `get_shape_in`'s.
+# Inlining builds the plan from `length(L)` instead of `ndims(x)`, so the function path's
+# rank check is lost. Re-emit it: an exact rank without an ellipsis, a lower bound (the
+# ellipsis must span ≥ 0 dims) with one, each with the function path's message.
 function rank_check(L, has_ellipsis)
     n = length(L) - has_ellipsis
-    has_ellipsis ?
-        :(ndims(x) >= $n || throw(ArgumentError(string("Input rank ", ndims(x), " is too small for pattern requiring at least ", $n, " dimensions")))) :
-        :(ndims(x) == $n || throw(ArgumentError(string("Input length ", $n, " does not match array dimensionality ", ndims(x)))))
+    holds = has_ellipsis ? :(ndims(x) >= $n) : :(ndims(x) == $n)
+    return :($holds || throw_rank(ndims(x), $n, $has_ellipsis))
 end
 
 has_multisymbol_group(side) = any(el -> el isa Tuple && length(el) >= 2, side)

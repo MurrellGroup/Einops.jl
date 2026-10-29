@@ -26,7 +26,8 @@ end
 
 function remove_anonymous_dims(side)
     integers = filter(!isone, extract(Integer, side))
-    symbols = anonymous_symbols(:__anon_dim, length(integers))
+    # Hidden like an interpolation's name, and like it spelling what it stands for.
+    symbols = ntuple(i -> Symbol("__", integers[i], "#", i), length(integers))
     context = NamedTuple{symbols}(integers)
     i = 0
     new_side = map(side) do t

@@ -11,11 +11,13 @@ using Test
 
     @testset "error handling" begin
         x = rand(2, 3, 5)
-        @test_throws "Input length" rearrange(x, einops"a (b c) -> c b a")
-        @test_throws ["Set of", "does not match"] rearrange(x, einops"a b c -> a b a")
-        @test_throws ["Left names", "not unique"] rearrange(x, einops"a a b -> a b")
-        @test_throws ["Right names", "not unique"] rearrange(x, einops"a b c -> a b c a")
-        @test_throws "Invalid dimension" rearrange(x, einops"a b ((c)) -> a b c")
+        @test_throws "The input has 3 dimensions, but the pattern expects 2" rearrange(x, einops"a (b c) -> c b a")
+        @test_throws "The input has 3 dimensions, but the pattern expects at least 4" rearrange(x, einops"a b c d ... -> a b c d ...")
+        @test_throws "The input has 1 dimension, but the pattern expects 2" rearrange(rand(2), einops"a b -> b a")
+        @test_throws "`c` is only on the left side" rearrange(x, einops"a b c -> a b a")
+        @test_throws "`a` appears more than once on the left side" rearrange(x, einops"a a b -> a b")
+        @test_throws "`a` appears more than once on the right side" rearrange(x, einops"a b c -> a b c a")
+        @test_throws "Groups can't be nested: `((c))`" rearrange(x, einops"a b ((c)) -> a b c")
     end
 
     @testset "ellipses support" begin
@@ -43,7 +45,7 @@ using Test
 
         x = rand(2, 3, 5*7*11)
         @test rearrange(x, einops"a b (c d e) -> (a e) d (c b)", c=5, d=7) == reshape(permutedims(reshape(x, 2, 3, 5, 7, 11), (1, 5, 4, 3, 2)), 2*11, 7, 5*3)
-        @test_throws "Unknown dimension sizes" rearrange(x, einops"a b (c d e) -> a b c d e", c=5)
+        @test_throws "Can't infer `d` and `e` in `(c d e)`" rearrange(x, einops"a b (c d e) -> a b c d e", c=5)
 
         @test rearrange(x, einops"(a) b c -> a b (c)") == x
     end
@@ -51,8 +53,8 @@ using Test
     @testset "singleton dimensions" begin
         x = rand(2, 1, 3)
         @test rearrange(x, einops"a 1 b -> a b") == dropdims(x, dims=2)
-        @test_throws "Integer 2 in pattern" rearrange(x, einops"2 a b -> a b")
-        @test_throws "Integer 2 in pattern" rearrange(x, einops"a b c -> a b c 2")
+        @test_throws "Unnamed axis `2`" rearrange(x, einops"2 a b -> a b")
+        @test_throws "Unnamed axis `2`" rearrange(x, einops"a b c -> a b c 2")
 
         x = rand(2, 3)
         @test rearrange(x, einops"a b -> b 1 a") == reshape(permutedims(x, (2, 1)), 3, 1, 2)
@@ -138,7 +140,7 @@ using Test
         @test_throws Exception rearrange(x, einops"a b (c d) -> a b c d", c=5, d=2)  # 4 != 5*2
         
         # Missing required dimensions
-        @test_throws "Unknown dimension sizes" rearrange(x, einops"a b (c d) -> a b c d")  # No size for c or d
+        @test_throws "Can't infer `c` and `d` in `(c d)`" rearrange(x, einops"a b (c d) -> a b c d")  # No size for c or d
         
         # Non-numeric arrays - these should work!
         x = ["a" "b"; "c" "d"]
