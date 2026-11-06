@@ -3,7 +3,7 @@ using Test
 
 using Pkg
 
-const EINOPS_TEST_ZYGOTE = v"1.11" <= VERSION <= v"1.12" && get(ENV, "EINOPS_TEST_ZYGOTE", "false") == "true"
+const EINOPS_TEST_ZYGOTE = v"1.11" <= VERSION < v"1.13" && get(ENV, "EINOPS_TEST_ZYGOTE", "false") == "true"
 EINOPS_TEST_ZYGOTE && Pkg.add("Zygote")
 
 const EINOPS_TEST_REACTANT = v"1.10" <= VERSION && get(ENV, "EINOPS_TEST_REACTANT", "false") == "true"
